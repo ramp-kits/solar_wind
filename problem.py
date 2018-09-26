@@ -35,21 +35,40 @@ def _read_data(path, type_):
 
     fname = 'data_{}.parquet'.format(type_)
     fp = os.path.join(path, 'data', fname)
-
     data = pd.read_parquet(fp)
 
-    y = data['label']
-    del data['label']
+    fname = 'labels_{}.csv'.format(type_)
+    fp = os.path.join(path, 'data', fname)
+    labels = pd.read_csv(fp)
+
+    ## convert labels into continuous array
+
+    labels['begin'] = pd.to_datetime(labels['begin'], format="%Y-%m-%d %H:%M:%S")
+    labels['end'] = pd.to_datetime(labels['end'], format="%Y-%m-%d %H:%M:%S")
+
+    # problem with identical begin / end previous label with reindexing method
+    mask = labels['begin'] == pd.Timestamp('2000-11-11 04:10:00')
+    labels.loc[mask, 'begin'] += pd.Timedelta('20min')
+
+    labels['end'] = labels['end'] + pd.Timedelta('10min')
+    labels.columns.name = 'label'
+    labels = labels[['begin', 'end']].stack().reset_index(name='time')
+    labels['label'] = labels['label'].replace({'begin': 1, 'end': 0})
+    labels = labels.set_index('time')['label']
+
+    y = labels.reindex(data.index, method='ffill')
+
+    # easier but slow method
+    # y = pd.Series(0, index=data.index)
+    # for begin, end in labels[['begin', 'end']].itertuples(index=False):
+    #     y.loc[begin:end] = 1
 
     # for the "quick-test" mode, use less data
     test = os.getenv('RAMP_TEST_MODE', 0)
     if test:
-        N_small = 100000
+        N_small = 50000
         data = data[:N_small]
         y = y[:N_small]
-        # add some random to ensure each CV fold has all classes
-        y[np.random.randint(N_small, size=100)] = 1
-        y[np.random.randint(N_small, size=100)] = 2
 
     return data, y
 
