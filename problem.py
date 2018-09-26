@@ -9,25 +9,16 @@ import rampwf as rw
 
 
 problem_title = 'Solar wind classification'
-Predictions = rw.prediction_types.make_multiclass(label_names=[0, 1, 2])
-# # The time-series feature extractor step (the first step of the ElNino)
-# # workflow takes two additional parameters the parametrize the lookahead
-# # check. You may want to change these at the backend or add more check
-# # points to avoid that people game the setup.
-# workflow = rw.workflows.ElNino(check_sizes=[132], check_indexs=[13])
+
+Predictions = rw.prediction_types.make_multiclass(label_names=[0, 1])
+
+workflow = rw.workflows.FeatureExtractorClassifier()
 
 score_types = [
     rw.score_types.Accuracy(name='acc', precision=3),
 ]
 
-# # We do an 8-fold block cv. With the given parameters, we have
-# # length of common block: 300 months = 25 years
-# # length of validation block: 288 months = 24 years
-# # length of each cv block: 36 months = 3 years
-# cv = rw.cvs.TimeSeries(
-#     n_cv=8, cv_block_size=0.5, period=12, unit='month', unit_2='year')
-# get_cv = cv.get_cv
-cv = KFold(n_splits=10)
+cv = KFold(n_splits=3)
 get_cv = cv.split
 
 
@@ -83,35 +74,35 @@ def get_test_data(path='.'):
     return _read_data(path, 'test')
 
 
-class TimeSeriesClassifier(object):
-    def __init__(self, workflow_element_names=[
-            'ts_feature_extractor', 'classifier']):
-        self.element_names = workflow_element_names
-        self.feature_extractor_workflow = rw.workflows.FeatureExtractor(
-            [self.element_names[0]])
-        self.classifier_workflow = rw.workflows.Classifier(
-            [self.element_names[1]])
+# class TimeSeriesClassifier(object):
+#     def __init__(self, workflow_element_names=[
+#             'ts_feature_extractor', 'classifier']):
+#         self.element_names = workflow_element_names
+#         self.feature_extractor_workflow = rw.workflows.FeatureExtractor(
+#             [self.element_names[0]])
+#         self.classifier_workflow = rw.workflows.Classifier(
+#             [self.element_names[1]])
 
-    def train_submission(self, module_path, X_df, y_array, train_is=None):
-        if train_is is None:
-            train_is = slice(None, None, None)
-        fe = self.feature_extractor_workflow.train_submission(
-            module_path, X_df, y_array, train_is)
-        X_train_array = self.feature_extractor_workflow.test_submission(
-            fe, X_df.iloc[train_is])
-        clf = self.classifier_workflow.train_submission(
-            module_path, X_train_array, y_array[train_is])
-        return fe, clf
+#     def train_submission(self, module_path, X_df, y_array, train_is=None):
+#         if train_is is None:
+#             train_is = slice(None, None, None)
+#         fe = self.feature_extractor_workflow.train_submission(
+#             module_path, X_df, y_array, train_is)
+#         X_train_array = self.feature_extractor_workflow.test_submission(
+#             fe, X_df.iloc[train_is])
+#         clf = self.classifier_workflow.train_submission(
+#             module_path, X_train_array, y_array[train_is])
+#         return fe, clf
 
-    def test_submission(self, trained_model, X_df):
-        fe, clf = trained_model
-        X_test_array = self.feature_extractor_workflow.test_submission(
-            fe, X_df)
-        y_proba = self.classifier_workflow.test_submission(clf, X_test_array)
-        return y_proba
+#     def test_submission(self, trained_model, X_df):
+#         fe, clf = trained_model
+#         X_test_array = self.feature_extractor_workflow.test_submission(
+#             fe, X_df)
+#         y_proba = self.classifier_workflow.test_submission(clf, X_test_array)
+#         return y_proba
 
 
-workflow = TimeSeriesClassifier()
+# workflow = TimeSeriesClassifier()
 
 
 # import numpy as np

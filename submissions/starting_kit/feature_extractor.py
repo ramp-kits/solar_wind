@@ -40,8 +40,8 @@ class FeatureExtractor(object):
 @memory.cache
 def _transform(X_df):
     X_df_new = X_df.copy()
-    X_df_new = computeBeta(X_df_new)
-    X_df_new = computeRollingStd(X_df_new, '15min', 'Beta')
+    #X_df_new = computeBeta(X_df_new)
+    #X_df_new = computeRollingStd(X_df_new, '15min', 'Beta')
     X_df_new = computeRollingStd(X_df_new, '2h', 'Beta')
 
     # for now impute missing values (need to deal with burn in period)
