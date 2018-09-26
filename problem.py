@@ -57,6 +57,8 @@ def _read_data(path, type_):
     labels = labels.set_index('time')['label']
 
     y = labels.reindex(data.index, method='ffill')
+    # remaining NaNs at beginning of series
+    y = y.fillna(0).astype(int)
 
     # easier but slow method
     # y = pd.Series(0, index=data.index)
