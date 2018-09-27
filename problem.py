@@ -4,8 +4,10 @@ import os
 import numpy as np
 import pandas as pd
 from sklearn.model_selection import KFold
+from sklearn.metrics import log_loss
 
 import rampwf as rw
+from rampwf.score_types.base import BaseScoreType
 
 
 problem_title = 'Solar wind classification'
@@ -14,8 +16,34 @@ Predictions = rw.prediction_types.make_multiclass(label_names=[0, 1])
 
 workflow = rw.workflows.FeatureExtractorClassifier()
 
+
+class LogLoss(BaseScoreType):
+    is_lower_the_better = True
+    minimum = 0.0
+    maximum = np.inf
+
+    def __init__(self, name='logloss', precision=2):
+        self.name = name
+        self.precision = precision
+
+    def __call__(self, y_true_label_index, y_pred_label_index):
+        score = log_loss(y_true_label_index, y_pred_label_index)
+        return score
+
+    def score_function(self, ground_truths, predictions, valid_indexes=None):
+        # overwrite this method to use 'predictions.y_pred' instead of
+        # 'predictions.y_pred_label_index' (raw proba's)
+        self.label_names = ground_truths.label_names
+        if valid_indexes is None:
+            valid_indexes = slice(None, None, None)
+        y_pred_label_index = predictions.y_pred[valid_indexes]
+        y_true_label_index = ground_truths.y_pred_label_index[valid_indexes]
+        self.check_y_pred_dimensions(y_true_label_index, y_pred_label_index)
+        return self.__call__(y_true_label_index, y_pred_label_index)
+
+
 score_types = [
-    rw.score_types.Accuracy(name='acc', precision=3),
+    LogLoss(),
 ]
 
 cv = KFold(n_splits=3)
