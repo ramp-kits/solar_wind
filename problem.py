@@ -4,10 +4,11 @@ import os
 import numpy as np
 import pandas as pd
 from sklearn.model_selection import KFold
-from sklearn.metrics import log_loss
+from sklearn.metrics import log_loss, recall_score, precision_score
 
 import rampwf as rw
 from rampwf.score_types.base import BaseScoreType
+from rampwf.score_types.classifier_base import ClassifierBaseScoreType
 
 
 problem_title = 'Solar wind classification'
@@ -18,6 +19,8 @@ workflow = rw.workflows.FeatureExtractorClassifier()
 
 
 class LogLoss(BaseScoreType):
+    # subclass BaseScoreType to use raw y_pred (proba's)
+
     is_lower_the_better = True
     minimum = 0.0
     maximum = np.inf
@@ -26,24 +29,43 @@ class LogLoss(BaseScoreType):
         self.name = name
         self.precision = precision
 
-    def __call__(self, y_true_label_index, y_pred_label_index):
-        score = log_loss(y_true_label_index, y_pred_label_index)
+    def __call__(self, y_true, y_pred):
+        score = log_loss(y_true, y_pred)
         return score
 
-    def score_function(self, ground_truths, predictions, valid_indexes=None):
-        # overwrite this method to use 'predictions.y_pred' instead of
-        # 'predictions.y_pred_label_index' (raw proba's)
-        self.label_names = ground_truths.label_names
-        if valid_indexes is None:
-            valid_indexes = slice(None, None, None)
-        y_pred_label_index = predictions.y_pred[valid_indexes]
-        y_true_label_index = ground_truths.y_pred_label_index[valid_indexes]
-        self.check_y_pred_dimensions(y_true_label_index, y_pred_label_index)
-        return self.__call__(y_true_label_index, y_pred_label_index)
+
+class Precision(ClassifierBaseScoreType):
+    is_lower_the_better = False
+    minimum = 0.0
+    maximum = 1.0
+
+    def __init__(self, name='precision', precision=2):
+        self.name = name
+        self.precision = precision
+
+    def __call__(self, y_true_label_index, y_pred_label_index):
+        score = precision_score(y_true_label_index, y_pred_label_index)
+        return score
+
+
+class Recall(ClassifierBaseScoreType):
+    is_lower_the_better = False
+    minimum = 0.0
+    maximum = 1.0
+
+    def __init__(self, name='recall', precision=2):
+        self.name = name
+        self.precision = precision
+
+    def __call__(self, y_true_label_index, y_pred_label_index):
+        score = recall_score(y_true_label_index, y_pred_label_index)
+        return score
 
 
 score_types = [
     LogLoss(),
+    Precision(),
+    Recall()
 ]
 
 cv = KFold(n_splits=3)
