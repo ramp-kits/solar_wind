@@ -10,11 +10,27 @@ import rampwf as rw
 from rampwf.score_types.base import BaseScoreType
 from rampwf.score_types.classifier_base import ClassifierBaseScoreType
 
+
 problem_title = 'Solar wind classification'
 
 Predictions = rw.prediction_types.make_multiclass(label_names=[0, 1])
 
 workflow = rw.workflows.FeatureExtractorClassifier()
+
+
+class PointWiseLogLoss(BaseScoreType):
+    # subclass BaseScoreType to use raw y_pred (proba's)
+    is_lower_the_better = True
+    minimum = 0.0
+    maximum = np.inf
+
+    def __init__(self, name='pw_ll', precision=2):
+        self.name = name
+        self.precision = precision
+
+    def __call__(self, y_true, y_pred):
+        score = log_loss(y_true, y_pred)
+        return score
 
 
 class PointWisePrecision(ClassifierBaseScoreType):
@@ -46,27 +62,28 @@ class PointWiseRecall(ClassifierBaseScoreType):
 
 
 score_types = [
-    rw.score_types.NegativeLogLikelihood(name='pw_ll'),
+    PointWiseLogLoss(),
     PointWisePrecision(),
     PointWiseRecall()
 ]
 
 
 def get_cv(X, y):
+    # 10 fold cross-validation based on 5 splits
     n_splits = 5
-    k = 10
     cv = KFold(n_splits=n_splits)
     splits = list(cv.split(X, y))
     # 5 folds, each point is in test set 4x
     # set k to a lower number if you want less folds
-    pattern =\
-        [([2, 3, 4], [0, 1]), ([0, 1, 4], [2, 3]), ([0, 2, 3], [1, 4]),
-         ([0, 1, 3], [2, 4]), ([1, 2, 4], [0, 3]), ([0, 1, 2], [3, 4]),
-         ([0, 2, 4], [1, 3]), ([1, 2, 3], [0, 4]), ([0, 3, 4], [1, 2]),
-         ([1, 3, 4], [0, 2])]
-    for ps in pattern[:k]:
-        yield np.hstack([splits[p][1] for p in ps[0]]),\
-            np.hstack([splits[p][1] for p in ps[1]])
+    pattern = [
+        ([2, 3, 4], [0, 1]), ([0, 1, 4], [2, 3]), ([0, 2, 3], [1, 4]),
+        ([0, 1, 3], [2, 4]), ([1, 2, 4], [0, 3]), ([0, 1, 2], [3, 4]),
+        ([0, 2, 4], [1, 3]), ([1, 2, 3], [0, 4]), ([0, 3, 4], [1, 2]),
+        ([1, 3, 4], [0, 2])
+    ]
+    for ps in pattern:
+        yield (np.hstack([splits[p][1] for p in ps[0]]),
+               np.hstack([splits[p][1] for p in ps[1]]))
 
 
 def _read_data(path, type_):
