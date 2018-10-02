@@ -18,14 +18,14 @@ Predictions = rw.prediction_types.make_multiclass(label_names=[0, 1])
 workflow = rw.workflows.FeatureExtractorClassifier()
 
 
-class LogLoss(BaseScoreType):
+class PointWiseLogLoss(BaseScoreType):
     # subclass BaseScoreType to use raw y_pred (proba's)
 
     is_lower_the_better = True
     minimum = 0.0
     maximum = np.inf
 
-    def __init__(self, name='logloss', precision=2):
+    def __init__(self, name='pw_ll', precision=2):
         self.name = name
         self.precision = precision
 
@@ -34,12 +34,12 @@ class LogLoss(BaseScoreType):
         return score
 
 
-class Precision(ClassifierBaseScoreType):
+class PointWisePrecision(ClassifierBaseScoreType):
     is_lower_the_better = False
     minimum = 0.0
     maximum = 1.0
 
-    def __init__(self, name='precision', precision=2):
+    def __init__(self, name='pw_prec', precision=2):
         self.name = name
         self.precision = precision
 
@@ -48,12 +48,12 @@ class Precision(ClassifierBaseScoreType):
         return score
 
 
-class Recall(ClassifierBaseScoreType):
+class PointWiseRecall(ClassifierBaseScoreType):
     is_lower_the_better = False
     minimum = 0.0
     maximum = 1.0
 
-    def __init__(self, name='recall', precision=2):
+    def __init__(self, name='pw_rec', precision=2):
         self.name = name
         self.precision = precision
 
@@ -63,10 +63,11 @@ class Recall(ClassifierBaseScoreType):
 
 
 score_types = [
-    LogLoss(),
-    Precision(),
-    Recall()
+    PointWiseLogLoss(),
+    PointWisePrecision(),
+    PointWiseRecall()
 ]
+
 
 cv = KFold(n_splits=8)
 get_cv = cv.split
