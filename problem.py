@@ -10,7 +10,6 @@ import rampwf as rw
 from rampwf.score_types.base import BaseScoreType
 from rampwf.score_types.classifier_base import ClassifierBaseScoreType
 
-
 problem_title = 'Solar wind classification'
 
 Predictions = rw.prediction_types.make_multiclass(label_names=[0, 1])
@@ -52,8 +51,22 @@ score_types = [
     Recall()
 ]
 
-cv = KFold(n_splits=8)
-get_cv = cv.split
+
+def get_cv(X, y):
+    n_splits = 5
+    k = 10
+    cv = KFold(n_splits=n_splits)
+    splits = list(cv.split(X, y))
+    # 5 folds, each point is in test set 4x
+    # set k to a lower number if you want less folds
+    pattern =\
+        [([2, 3, 4], [0, 1]), ([0, 1, 4], [2, 3]), ([0, 2, 3], [1, 4]),
+         ([0, 1, 3], [2, 4]), ([1, 2, 4], [0, 3]), ([0, 1, 2], [3, 4]),
+         ([0, 2, 4], [1, 3]), ([1, 2, 3], [0, 4]), ([0, 3, 4], [1, 2]),
+         ([1, 3, 4], [0, 2])]
+    for ps in pattern[:k]:
+        yield np.hstack([splits[p][1] for p in ps[0]]),\
+            np.hstack([splits[p][1] for p in ps[1]])
 
 
 def _read_data(path, type_):
