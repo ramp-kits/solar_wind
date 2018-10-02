@@ -1,3 +1,5 @@
+from __future__ import division
+
 from collections import Counter
 
 from sklearn.base import BaseEstimator
