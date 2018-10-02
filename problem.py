@@ -18,6 +18,22 @@ Predictions = rw.prediction_types.make_multiclass(label_names=[0, 1])
 workflow = rw.workflows.FeatureExtractorClassifier()
 
 
+class LogLoss(BaseScoreType):
+    # subclass BaseScoreType to use raw y_pred (proba's)
+
+    is_lower_the_better = True
+    minimum = 0.0
+    maximum = np.inf
+
+    def __init__(self, name='logloss', precision=2):
+        self.name = name
+        self.precision = precision
+
+    def __call__(self, y_true, y_pred):
+        score = log_loss(y_true, y_pred)
+        return score
+
+
 class Precision(ClassifierBaseScoreType):
     is_lower_the_better = False
     minimum = 0.0
@@ -47,7 +63,7 @@ class Recall(ClassifierBaseScoreType):
 
 
 score_types = [
-    rw.score_types.NegativeLogLikelihood(name='nll', precision=3),
+    LogLoss(),
     Precision(),
     Recall()
 ]
