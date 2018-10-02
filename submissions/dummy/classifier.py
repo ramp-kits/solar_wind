@@ -8,7 +8,7 @@ class Classifier(BaseEstimator):
         return self
 
     def predict_proba(self, X):
-        # just return majority class (class 0)
-        y_pred = np.zeros((len(X), 3))
+        # just return majority class (class 0 - no storm)
+        y_pred = np.zeros((len(X), 2))
         y_pred[:, 0] = 1
         return y_pred
