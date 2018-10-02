@@ -18,22 +18,6 @@ Predictions = rw.prediction_types.make_multiclass(label_names=[0, 1])
 workflow = rw.workflows.FeatureExtractorClassifier()
 
 
-class LogLoss(BaseScoreType):
-    # subclass BaseScoreType to use raw y_pred (proba's)
-
-    is_lower_the_better = True
-    minimum = 0.0
-    maximum = np.inf
-
-    def __init__(self, name='logloss', precision=2):
-        self.name = name
-        self.precision = precision
-
-    def __call__(self, y_true, y_pred):
-        score = log_loss(y_true, y_pred)
-        return score
-
-
 class Precision(ClassifierBaseScoreType):
     is_lower_the_better = False
     minimum = 0.0
@@ -63,12 +47,12 @@ class Recall(ClassifierBaseScoreType):
 
 
 score_types = [
-    LogLoss(),
+    rw.score_types.NegativeLogLikelihood(name='nll', precision=3),
     Precision(),
     Recall()
 ]
 
-cv = KFold(n_splits=3)
+cv = KFold(n_splits=8)
 get_cv = cv.split
 
 
@@ -82,9 +66,10 @@ def _read_data(path, type_):
     fp = os.path.join(path, 'data', fname)
     labels = pd.read_csv(fp)
 
-    ## convert labels into continuous array
+    # convert labels into continuous array
 
-    labels['begin'] = pd.to_datetime(labels['begin'], format="%Y-%m-%d %H:%M:%S")
+    labels['begin'] = pd.to_datetime(
+        labels['begin'], format="%Y-%m-%d %H:%M:%S")
     labels['end'] = pd.to_datetime(labels['end'], format="%Y-%m-%d %H:%M:%S")
 
     # problem with identical begin / end previous label with reindexing method
