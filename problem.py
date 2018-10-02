@@ -53,20 +53,22 @@ score_types = [
 
 
 def get_cv(X, y):
-    n_splits = 5
+    # 10 fold cross-validation based on 5 splits
     k = 10
+    n_splits = 5
     cv = KFold(n_splits=n_splits)
     splits = list(cv.split(X, y))
     # 5 folds, each point is in test set 4x
     # set k to a lower number if you want less folds
-    pattern =\
-        [([2, 3, 4], [0, 1]), ([0, 1, 4], [2, 3]), ([0, 2, 3], [1, 4]),
-         ([0, 1, 3], [2, 4]), ([1, 2, 4], [0, 3]), ([0, 1, 2], [3, 4]),
-         ([0, 2, 4], [1, 3]), ([1, 2, 3], [0, 4]), ([0, 3, 4], [1, 2]),
-         ([1, 3, 4], [0, 2])]
-    for ps in pattern[:k]:
-        yield np.hstack([splits[p][1] for p in ps[0]]),\
-            np.hstack([splits[p][1] for p in ps[1]])
+    pattern = [
+        ([2, 3, 4], [0, 1]), ([0, 1, 4], [2, 3]), ([0, 2, 3], [1, 4]),
+        ([0, 1, 3], [2, 4]), ([1, 2, 4], [0, 3]), ([0, 1, 2], [3, 4]),
+        ([0, 2, 4], [1, 3]), ([1, 2, 3], [0, 4]), ([0, 3, 4], [1, 2]),
+        ([1, 3, 4], [0, 2])
+    ]
+    for ps in pattern:
+        yield (np.hstack([splits[p][1] for p in ps[0]]),
+               np.hstack([splits[p][1] for p in ps[1]]))
 
 
 def _read_data(path, type_):
