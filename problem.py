@@ -4,11 +4,11 @@ import os
 import numpy as np
 import pandas as pd
 from sklearn.model_selection import KFold
-from sklearn.metrics import log_loss, recall_score, precision_score
+from sklearn.metrics import recall_score, precision_score
 
 import rampwf as rw
-from rampwf.score_types.base import BaseScoreType
 from rampwf.score_types.classifier_base import ClassifierBaseScoreType
+
 
 problem_title = 'Solar wind classification'
 
@@ -46,7 +46,9 @@ class PointWiseRecall(ClassifierBaseScoreType):
 
 
 score_types = [
+    # log-loss
     rw.score_types.NegativeLogLikelihood(name='pw_ll'),
+    # point-wise (for each time step) precision and recall
     PointWisePrecision(),
     PointWiseRecall()
 ]
@@ -54,7 +56,6 @@ score_types = [
 
 def get_cv(X, y):
     # 10 fold cross-validation based on 5 splits
-    k = 10
     n_splits = 5
     cv = KFold(n_splits=n_splits)
     splits = list(cv.split(X, y))

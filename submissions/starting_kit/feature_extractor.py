@@ -18,12 +18,12 @@ class FeatureExtractor(object):
     def transform(self, X_df):
         return _transform(X_df)
 
+
 @memory.cache
 def _transform(X_df):
     """
     Cached version of the transform method.
     """
-
     X_df_new = X_df.copy()
     #X_df_new = computeBeta(X_df_new)
     #X_df_new = computeRollingStd(X_df_new, '15min', 'Beta')
