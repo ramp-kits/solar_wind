@@ -4,10 +4,9 @@ import os
 import numpy as np
 import pandas as pd
 from sklearn.model_selection import KFold
-from sklearn.metrics import log_loss, recall_score, precision_score
+from sklearn.metrics import recall_score, precision_score
 
 import rampwf as rw
-from rampwf.score_types.base import BaseScoreType
 from rampwf.score_types.classifier_base import ClassifierBaseScoreType
 
 
@@ -16,21 +15,6 @@ problem_title = 'Solar wind classification'
 Predictions = rw.prediction_types.make_multiclass(label_names=[0, 1])
 
 workflow = rw.workflows.FeatureExtractorClassifier()
-
-
-class PointWiseLogLoss(BaseScoreType):
-    # subclass BaseScoreType to use raw y_pred (proba's)
-    is_lower_the_better = True
-    minimum = 0.0
-    maximum = np.inf
-
-    def __init__(self, name='pw_ll', precision=2):
-        self.name = name
-        self.precision = precision
-
-    def __call__(self, y_true, y_pred):
-        score = log_loss(y_true, y_pred)
-        return score
 
 
 class PointWisePrecision(ClassifierBaseScoreType):
@@ -62,7 +46,9 @@ class PointWiseRecall(ClassifierBaseScoreType):
 
 
 score_types = [
-    PointWiseLogLoss(),
+    # log-loss
+    rw.score_types.NegativeLogLikelihood(name='pw_ll'),
+    # point-wise (for each time step) precision and recall
     PointWisePrecision(),
     PointWiseRecall()
 ]
