@@ -69,7 +69,10 @@ score_types = [
 
 
 def get_cv(X, y):
-    # 10 fold cross-validation based on 5 splits
+    # using 5 folds as default
+    k = 5
+    # up to 10 fold cross-validation based on 5 splits, using two parts for
+    # testing in each fold
     n_splits = 5
     cv = KFold(n_splits=n_splits)
     splits = list(cv.split(X, y))
@@ -81,7 +84,7 @@ def get_cv(X, y):
         ([0, 2, 4], [1, 3]), ([1, 2, 3], [0, 4]), ([0, 3, 4], [1, 2]),
         ([1, 3, 4], [0, 2])
     ]
-    for ps in pattern:
+    for ps in pattern[:k]:
         yield (np.hstack([splits[p][1] for p in ps[0]]),
                np.hstack([splits[p][1] for p in ps[1]]))
 
