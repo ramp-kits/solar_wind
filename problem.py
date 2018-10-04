@@ -8,14 +8,13 @@ from sklearn.model_selection import KFold
 from sklearn.metrics import recall_score, precision_score
 
 import rampwf as rw
+from rampwf.score_types.base import BaseScoreType
 from rampwf.score_types.classifier_base import ClassifierBaseScoreType
 from rampwf.workflows.feature_extractor import FeatureExtractor
 from rampwf.workflows.classifier import Classifier
 
 
 problem_title = 'Solar wind classification'
-
-Predictions = rw.prediction_types.make_multiclass(label_names=[0, 1])
 
 
 # -----------------------------------------------------------------------------
@@ -48,10 +47,43 @@ class FeatureExtractorClassifier(object):
             fe, X_df)
         y_proba = self.classifier_workflow.test_submission(clf, X_test_array)
         y_df_proba = pd.DataFrame(y_proba, index=X_df.index)
-        return y_proba
+        return y_df_proba
 
 
 workflow = FeatureExtractorClassifier()
+
+
+# -----------------------------------------------------------------------------
+# Predictions type
+# -----------------------------------------------------------------------------
+
+
+BaseMultiClassPredictions = rw.prediction_types.make_multiclass(
+    label_names=[0, 1])
+
+
+class Predictions(BaseMultiClassPredictions):
+
+    def __init__(self, y_pred=None, y_true=None, n_samples=None):
+        # override init to not convert y_pred/y_true to arrays
+        if y_pred is not None:
+            self.y_pred = y_pred
+        elif y_true is not None:
+            self._init_from_pred_labels(y_true)
+            self.y_pred = pd.DataFrame(self.y_pred, y_true.index)
+        elif n_samples is not None:
+            print("Here I should never be !!!!!!!!!!!!!!!!!!!!!!!!!!")
+            self.y_pred = np.empty((n_samples, self.n_columns), dtype=float)
+            self.y_pred.fill(np.nan)
+        else:
+            raise ValueError(
+                'Missing init argument: y_pred, y_true, or n_samples')
+        self.check_y_pred_dimensions()
+
+    @property
+    def y_pred_label_index(self):
+        """Multi-class y_pred is the index of the predicted label."""
+        return np.argmax(self.y_pred.values, axis=1)
 
 
 # -----------------------------------------------------------------------------
@@ -87,16 +119,19 @@ class PointWiseRecall(ClassifierBaseScoreType):
         return score
 
 
-class EventWisePrecision(ClassifierBaseScoreType):
+class EventWisePrecision(BaseScoreType):
+    # subclass BaseScoreType to use raw y_pred (proba's)
     is_lower_the_better = False
     minimum = 0.0
     maximum = 1.0
 
-    def __init__(self, name='pw_rec', precision=2):
+    def __init__(self, name='ev_prec', precision=2):
         self.name = name
         self.precision = precision
 
-    def __call__(self, event_true, event_pred):
+    def __call__(self, y_true, y_pred):
+        event_true = turnPredictionToEventList(y_true[1])
+        event_pred = turnPredictionToEventList(y_pred[1])
         FP = [x for x in event_pred if max(overlapWithList(x, event_true, percent=True))<0.4]
         FP_too_short = [x for x in FP if x.duration < datetime.timedelta(hours=2.5)]
         for event in FP_too_short:
@@ -105,16 +140,18 @@ class EventWisePrecision(ClassifierBaseScoreType):
         return score
 
 
-class EventWiseRecall(ClassifierBaseScoreType):
+class EventWiseRecall(BaseScoreType):
     is_lower_the_better = False
     minimum = 0.0
     maximum = 1.0
 
-    def __init__(self, name='pw_rec', precision=2):
+    def __init__(self, name='ev_rec', precision=2):
         self.name = name
         self.precision = precision
 
-    def __call__(self, event_true, event_pred):
+    def __call__(self, y_true, y_pred):
+        event_true = turnPredictionToEventList(y_true[1])
+        event_pred = turnPredictionToEventList(y_pred[1])
         FN = 0
         for event in event_true:
             corresponding = find(event, event_pred, 0.5, 'best')
@@ -226,7 +263,7 @@ def turnPredictionToEventList(y, thres=0.5):
     eventList.append(Event(listOfPosLabel.index[indexBegin],
                            listOfPosLabel.index[-1]))
     i = 0
-    eventList = [evt fot evt in eventList if x.duration > datetime.timedelta(0)]
+    eventList = [evt for evt in eventList if evt.duration > datetime.timedelta(0)]
     while i < len(eventList)-1:
         if eventList[i+1].begin-eventList[i].end < datetime.timedelta(hours=thres):
             eventList[i] = merge(eventList[i], eventList[i+1])
@@ -241,8 +278,16 @@ score_types = [
     rw.score_types.NegativeLogLikelihood(name='pw_ll'),
     # point-wise (for each time step) precision and recall
     PointWisePrecision(),
-    PointWiseRecall()
+    PointWiseRecall(),
+    # event-based precision and recall
+    EventWisePrecision(),
+    EventWiseRecall()
 ]
+
+
+# -----------------------------------------------------------------------------
+# Cross-validation scheme
+# -----------------------------------------------------------------------------
 
 
 def get_cv(X, y):
@@ -264,6 +309,11 @@ def get_cv(X, y):
     for ps in pattern[:k]:
         yield (np.hstack([splits[p][1] for p in ps[0]]),
                np.hstack([splits[p][1] for p in ps[1]]))
+
+
+# -----------------------------------------------------------------------------
+# Training / testing data reader
+# -----------------------------------------------------------------------------
 
 
 def _read_data(path, type_):
