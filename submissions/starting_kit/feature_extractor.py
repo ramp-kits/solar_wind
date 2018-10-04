@@ -1,5 +1,3 @@
-import numpy as np
-import pandas as pd
 from scipy import constants
 
 
@@ -43,7 +41,7 @@ def compute_rolling_std(data, feature, time_window, center=False):
         feature in the dataframe we wish to compute the rolling mean from
     time_indow : str
         string that defines the length of the time window passed to `rolling`
-    center : 
+    center : bool
         boolean to indicate if the point of the dataframe considered is
         center or end of the window
     """
