@@ -170,7 +170,7 @@ def turnPredictionToEventList(y, thres=0.5):
     deltaBetweenPosLabel = listOfPosLabel.index[1:] - listOfPosLabel.index[:-1]
     deltaBetweenPosLabel.insert(0, datetime.timedelta(0))
     endOfEvents = np.where(deltaBetweenPosLabel >
-                           datetime.timedelta(minutes=delta))[0]
+                           datetime.timedelta(minutes=10))[0]
     indexBegin = 0
     eventList = []
     for i in endOfEvents:
@@ -181,9 +181,10 @@ def turnPredictionToEventList(y, thres=0.5):
     eventList.append(Event(listOfPosLabel.index[indexBegin],
                            listOfPosLabel.index[-1]))
     i = 0
+    eventList = [evt fot evt in eventList if x.duration > datetime.timedelta(0)]
     while i < len(eventList)-1:
         if eventList[i+1].begin-eventList[i].end < datetime.timedelta(hours=thres):
-            eventList[i] = evt.merge(eventList[i], eventList[i+1])
+            eventList[i] = merge(eventList[i], eventList[i+1])
             eventList.remove(eventList[i+1])
         else:
             i += 1
