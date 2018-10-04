@@ -45,6 +45,151 @@ class PointWiseRecall(ClassifierBaseScoreType):
         return score
 
 
+class EventWisePrecision(ClassifierBaseScoreType):
+    is_lower_the_better = False
+    minimum = 0.0
+    maximum = 1.0
+
+    def __init__(self, name='pw_rec', precision=2):
+        self.name = name
+        self.precision = precision
+
+    def __call__(self, event_true, event_pred):
+        FP = [x for x in event_pred if max(evt.overlapWithList(x, event_true, percent=True))<0.4]
+        FP_too_short = [x for x in FP if x.duration < datetime.timedelta(hours=2.5)]
+        for event in FP_too_short:
+            FP.remove(event)
+        score = 1-len(FP)/len(event_pred)
+        return score
+
+
+class EventWiseRecall(ClassifierBaseScoreType):
+    is_lower_the_better = False
+    minimum = 0.0
+    maximum = 1.0
+
+    def __init__(self, name='pw_rec', precision=2):
+        self.name = name
+        self.precision = precision
+
+    def __call__(self, event_true, event_pred):
+        FN = 0
+        for event in event_true:
+            corresponding = find(event, event_pred, 0.5, 'best')
+            if corresponding is None:
+                FN += 1
+        score = 1-FN/len(event_true)
+        return score
+
+
+class Event:
+    def __init__(self, begin, end):
+        self.begin = begin
+        self.end = end
+        self.duration = self.end-self.begin
+
+    def __str__(self):
+        return "{} ---> {}".format(self.begin, self.end)
+
+
+def overlap(event1, event2):
+    '''return the time overlap between two events as a timedelta'''
+    delta1 = min(event1.end, event2.end)
+    delta2 = max(event1.begin, event2.begin)
+    return max(delta1-delta2,
+               datetime.timedelta(0))
+
+
+def overlapWithList(ref_event, event_list, percent=False):
+    '''
+    return the list of the overlaps between an event and the elements of
+    an event list
+    Have the possibility to have it as the percentage of fthe considered event
+    in the list
+    '''
+    if percent:
+        return [overlap(ref_event, elt)/elt.duration for elt in event_list]
+    else:
+        return [overlap(ref_event, elt) for elt in event_list]
+
+
+def isInList(ref_event, event_list, thres):
+    '''
+    returns True if ref_event is overlapped thres percent of its duration by
+    at least one elt in event_list
+    '''
+    return max(overlapWithList(ref_event,
+                               event_list)) > thres*ref_event.duration
+
+
+def merge(event1, event2):
+    return Event(event1.begin, event2.end)
+
+
+def choseEventFromList(ref_event, event_list, choice='first'):
+    '''
+    return an event from even_list according to the choice adopted
+    first return the first of the lists
+    last return the last of the lists
+    best return the one with max overlap
+    merge return the combination of all of them
+    '''
+    if choice == 'first':
+        return event_list[0]
+    if choice == 'last':
+        return event_list[-1]
+    if choice == 'best':
+        return event_list[np.argmax(overlapWithList(ref_event, event_list))]
+    if choice == 'merge':
+        return evt.merge(event_list[0], event_list[-1])
+
+
+def find(ref_event, event_list, thres, choice='best'):
+    '''
+    Return the event in event_list that overlap ref_event for a given threshold
+    if it exists
+    Choice give the preference of returned :
+    first return the first of the lists
+    Best return the one with max overlap
+    merge return the combination of all of them
+    '''
+    if isInList(ref_event, event_list, thres):
+        return(choseEventFromList(ref_event, event_list, choice))
+    else:
+        return None
+
+
+def turnPredictionToEventList(y, thres=0.5):
+    '''
+    Consider y as a pandas series, returns a list of Events corresponding to
+    the requested label (int), works for both smoothed and expected series
+    Delta corresponds to the series frequency (in our basic case with random
+    index, we consider this value to be equal to 2)
+    '''
+    listOfPosLabel = y[y > thres]
+    deltaBetweenPosLabel = listOfPosLabel.index[1:] - listOfPosLabel.index[:-1]
+    deltaBetweenPosLabel.insert(0, datetime.timedelta(0))
+    endOfEvents = np.where(deltaBetweenPosLabel >
+                           datetime.timedelta(minutes=delta))[0]
+    indexBegin = 0
+    eventList = []
+    for i in endOfEvents:
+        end = i
+        eventList.append(Event(listOfPosLabel.index[indexBegin],
+                         listOfPosLabel.index[end]))
+        indexBegin = i+1
+    eventList.append(Event(listOfPosLabel.index[indexBegin],
+                           listOfPosLabel.index[-1]))
+    i = 0
+    while i < len(eventList)-1:
+        if eventList[i+1].begin-eventList[i].end < datetime.timedelta(hours=thres):
+            eventList[i] = evt.merge(eventList[i], eventList[i+1])
+            eventList.remove(eventList[i+1])
+        else:
+            i += 1
+    return eventList
+
+
 score_types = [
     # log-loss
     rw.score_types.NegativeLogLikelihood(name='pw_ll'),
