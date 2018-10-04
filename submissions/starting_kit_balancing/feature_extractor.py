@@ -1,5 +1,3 @@
-import numpy as np
-import pandas as pd
 from scipy import constants
 
 from joblib import Memory
@@ -25,8 +23,8 @@ def _transform(X_df):
     Cached version of the transform method.
     """
     X_df_new = X_df.copy()
-    #X_df_new = compute_Beta(X_df_new)
-    #X_df_new = compute_rolling_std(X_df_new, '15min', 'Beta')
+    # X_df_new = compute_Beta(X_df_new)
+    # X_df_new = compute_rolling_std(X_df_new, '15min', 'Beta')
     X_df_new = compute_rolling_std(X_df_new, 'Beta', '2h')
 
     return X_df_new
@@ -59,7 +57,7 @@ def compute_rolling_std(data, feature, time_window, center=False):
         feature in the dataframe we wish to compute the rolling mean from
     time_indow : str
         string that defines the length of the time window passed to `rolling`
-    center : 
+    center : boolean
         boolean to indicate if the point of the dataframe considered is
         center or end of the window
     """

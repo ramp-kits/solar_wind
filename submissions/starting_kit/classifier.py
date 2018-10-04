@@ -1,7 +1,5 @@
 from __future__ import division
 
-from collections import Counter
-
 from sklearn.base import BaseEstimator
 from sklearn.linear_model import LogisticRegression
 

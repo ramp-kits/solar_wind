@@ -15,7 +15,7 @@ install:
   - pip install git+https://github.com/paris-saclay-cds/ramp-workflow.git
   - pip install -r requirements.txt
 script:
-  #- flake8 *.py submissions/*/*.py
+  - flake8 *.py submissions/*/*.py
   - python download_data.py
   - ramp_test_submission --submission starting_kit
   - ramp_test_submission --submission dummy
