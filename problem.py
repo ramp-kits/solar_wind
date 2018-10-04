@@ -1,5 +1,6 @@
 from __future__ import division, print_function
 import os
+import datetime
 
 import numpy as np
 import pandas as pd
@@ -8,13 +9,54 @@ from sklearn.metrics import recall_score, precision_score
 
 import rampwf as rw
 from rampwf.score_types.classifier_base import ClassifierBaseScoreType
+from rampwf.workflows.feature_extractor import FeatureExtractor
+from rampwf.workflows.classifier import Classifier
 
 
 problem_title = 'Solar wind classification'
 
 Predictions = rw.prediction_types.make_multiclass(label_names=[0, 1])
 
-workflow = rw.workflows.FeatureExtractorClassifier()
+
+# -----------------------------------------------------------------------------
+# Worklow element
+# -----------------------------------------------------------------------------
+
+
+class FeatureExtractorClassifier(object):
+
+    def __init__(self):
+        self.element_names = ['feature_extractor', 'classifier']
+        self.feature_extractor_workflow = FeatureExtractor(
+            [self.element_names[0]])
+        self.classifier_workflow = Classifier([self.element_names[1]])
+
+    def train_submission(self, module_path, X_df, y_array, train_is=None):
+        if train_is is None:
+            train_is = slice(None, None, None)
+        fe = self.feature_extractor_workflow.train_submission(
+            module_path, X_df, y_array, train_is)
+        X_train_array = self.feature_extractor_workflow.test_submission(
+            fe, X_df.iloc[train_is])
+        clf = self.classifier_workflow.train_submission(
+            module_path, X_train_array, y_array[train_is])
+        return fe, clf
+
+    def test_submission(self, trained_model, X_df):
+        fe, clf = trained_model
+        X_test_array = self.feature_extractor_workflow.test_submission(
+            fe, X_df)
+        y_proba = self.classifier_workflow.test_submission(clf, X_test_array)
+        y_df_proba = pd.DataFrame(y_proba, index=X_df.index)
+        return y_proba
+
+
+workflow = FeatureExtractorClassifier()
+
+
+# -----------------------------------------------------------------------------
+# Score types
+# -----------------------------------------------------------------------------
 
 
 class PointWisePrecision(ClassifierBaseScoreType):
@@ -55,7 +97,7 @@ class EventWisePrecision(ClassifierBaseScoreType):
         self.precision = precision
 
     def __call__(self, event_true, event_pred):
-        FP = [x for x in event_pred if max(evt.overlapWithList(x, event_true, percent=True))<0.4]
+        FP = [x for x in event_pred if max(overlapWithList(x, event_true, percent=True))<0.4]
         FP_too_short = [x for x in FP if x.duration < datetime.timedelta(hours=2.5)]
         for event in FP_too_short:
             FP.remove(event)
@@ -90,6 +132,9 @@ class Event:
 
     def __str__(self):
         return "{} ---> {}".format(self.begin, self.end)
+
+    def __repr__(self):
+        return "Event({} ---> {})".format(self.begin, self.end)
 
 
 def overlap(event1, event2):
