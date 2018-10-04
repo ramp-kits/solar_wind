@@ -132,8 +132,10 @@ class EventWisePrecision(BaseScoreType):
     def __call__(self, y_true, y_pred):
         event_true = turnPredictionToEventList(y_true[1])
         event_pred = turnPredictionToEventList(y_pred[1])
-        FP = [x for x in event_pred if max(overlapWithList(x, event_true, percent=True))<0.4]
-        FP_too_short = [x for x in FP if x.duration < datetime.timedelta(hours=2.5)]
+        FP = [x for x in event_pred
+              if max(overlapWithList(x, event_true, percent=True)) < 0.4]
+        FP_too_short = [x for x in FP
+                        if x.duration < datetime.timedelta(hours=2.5)]
         for event in FP_too_short:
             FP.remove(event)
         score = 1-len(FP)/len(event_pred)
@@ -178,8 +180,7 @@ def overlap(event1, event2):
     '''return the time overlap between two events as a timedelta'''
     delta1 = min(event1.end, event2.end)
     delta2 = max(event1.begin, event2.begin)
-    return max(delta1-delta2,
-               datetime.timedelta(0))
+    return max(delta1 - delta2, datetime.timedelta(0))
 
 
 def overlapWithList(ref_event, event_list, percent=False):
@@ -190,7 +191,7 @@ def overlapWithList(ref_event, event_list, percent=False):
     in the list
     '''
     if percent:
-        return [overlap(ref_event, elt)/elt.duration for elt in event_list]
+        return [overlap(ref_event, elt) / elt.duration for elt in event_list]
     else:
         return [overlap(ref_event, elt) for elt in event_list]
 
@@ -223,7 +224,7 @@ def choseEventFromList(ref_event, event_list, choice='first'):
     if choice == 'best':
         return event_list[np.argmax(overlapWithList(ref_event, event_list))]
     if choice == 'merge':
-        return evt.merge(event_list[0], event_list[-1])
+        return merge(event_list[0], event_list[-1])
 
 
 def find(ref_event, event_list, thres, choice='best'):
@@ -259,13 +260,15 @@ def turnPredictionToEventList(y, thres=0.5):
         end = i
         eventList.append(Event(listOfPosLabel.index[indexBegin],
                          listOfPosLabel.index[end]))
-        indexBegin = i+1
+        indexBegin = i + 1
     eventList.append(Event(listOfPosLabel.index[indexBegin],
                            listOfPosLabel.index[-1]))
     i = 0
-    eventList = [evt for evt in eventList if evt.duration > datetime.timedelta(0)]
-    while i < len(eventList)-1:
-        if eventList[i+1].begin-eventList[i].end < datetime.timedelta(hours=thres):
+    eventList = [evt for evt in eventList
+                 if evt.duration > datetime.timedelta(0)]
+    while i < len(eventList) - 1:
+        if (eventList[i+1].begin-eventList[i].end
+                < datetime.timedelta(hours=thres)):
             eventList[i] = merge(eventList[i], eventList[i+1])
             eventList.remove(eventList[i+1])
         else:
