@@ -23,6 +23,11 @@ problem_title = 'Solar wind classification'
 
 
 class FeatureExtractorClassifier(object):
+    """
+    Difference with the FeatureExtractorClassifier from ramp-workflow:
+    `test_submission` wraps the y_proba in a DataFrame with the original
+    index.
+    """
 
     def __init__(self):
         self.element_names = ['feature_extractor', 'classifier']
@@ -63,6 +68,10 @@ BaseMultiClassPredictions = rw.prediction_types.make_multiclass(
 
 
 class Predictions(BaseMultiClassPredictions):
+    """
+    Overriding parts of the ramp-workflow version to preserve the y_pred /
+    y_true DataFrames.
+    """
 
     def __init__(self, y_pred=None, y_true=None, n_samples=None):
         # override init to not convert y_pred/y_true to arrays
@@ -133,11 +142,7 @@ class EventWisePrecision(BaseScoreType):
         event_true = turnPredictionToEventList(y_true[1])
         event_pred = turnPredictionToEventList(y_pred[1])
         FP = [x for x in event_pred
-              if max(overlapWithList(x, event_true, percent=True)) < 0.4]
-        FP_too_short = [x for x in FP
-                        if x.duration < datetime.timedelta(hours=2.5)]
-        for event in FP_too_short:
-            FP.remove(event)
+              if max(overlapWithList(x, event_true, percent=True)) < 0.5]
         score = 1-len(FP)/len(event_pred)
         return score
 
@@ -273,6 +278,9 @@ def turnPredictionToEventList(y, thres=0.5):
             eventList.remove(eventList[i+1])
         else:
             i += 1
+    eventList = [x for x in eventList
+                   if x.duration >= datetime.timedelta(hours=2.5)]
+
     return eventList
 
 
