@@ -2,6 +2,11 @@ import numpy as np
 import pandas as pd
 from scipy import constants
 
+from joblib import Memory
+
+
+memory = Memory(cachedir='./cache', verbose=1)
+
 
 class FeatureExtractor(object):
     def __init__(self):
@@ -11,9 +16,20 @@ class FeatureExtractor(object):
         return self
 
     def transform(self, X_df):
-        X_df_new = X_df.copy()
-        X_df_new = compute_rolling_std(X_df_new, 'Beta', '2h')
-        return X_df_new
+        return _transform(X_df)
+
+
+@memory.cache
+def _transform(X_df):
+    """
+    Cached version of the transform method.
+    """
+    X_df_new = X_df.copy()
+    #X_df_new = compute_Beta(X_df_new)
+    #X_df_new = compute_rolling_std(X_df_new, '15min', 'Beta')
+    X_df_new = compute_rolling_std(X_df_new, 'Beta', '2h')
+
+    return X_df_new
 
 
 def compute_Beta(data):

@@ -3,27 +3,15 @@ from __future__ import division
 from collections import Counter
 
 from sklearn.base import BaseEstimator
-from sklearn.tree import DecisionTreeClassifier
-from imblearn.ensemble import BalancedBaggingClassifier
-
-
-def determine_ratio(y):
-    target_stats = Counter(y)
-    max_ = max(target_stats.values())
-    ratio = min(target_stats.values()) / max(target_stats.values()) * 5
-
-    return {key: int(value * ratio)
-            for key, value in target_stats.items() if value == max_}
+from sklearn.linear_model import LogisticRegression
 
 
 class Classifier(BaseEstimator):
     def __init__(self):
-        self.bbc = BalancedBaggingClassifier(
-            base_estimator=DecisionTreeClassifier(max_features='auto'),
-            ratio=determine_ratio, random_state=0)
+        self.model = LogisticRegression()
 
     def fit(self, X, y):
-        self.bbc.fit(X, y)
+        self.model.fit(X, y)
 
     def predict_proba(self, X):
-        return self.bbc.predict_proba(X)
+        return self.model.predict_proba(X)
