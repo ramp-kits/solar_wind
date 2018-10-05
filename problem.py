@@ -5,7 +5,7 @@ import datetime
 import numpy as np
 import pandas as pd
 from sklearn.model_selection import KFold
-from sklearn.metrics import recall_score, precision_score
+from sklearn.metrics import log_loss, recall_score, precision_score
 
 import rampwf as rw
 from rampwf.score_types.base import BaseScoreType
@@ -51,8 +51,10 @@ class FeatureExtractorClassifier(object):
         X_test_array = self.feature_extractor_workflow.test_submission(
             fe, X_df)
         y_proba = self.classifier_workflow.test_submission(clf, X_test_array)
-        y_df_proba = pd.DataFrame(y_proba, index=X_df.index)
-        return y_df_proba
+
+        arr = X_df.index.values.astype('datetime64[m]').astype(int)
+        y = np.hstack((arr[:, np.newaxis], y_proba))
+        return y
 
 
 workflow = FeatureExtractorClassifier()
@@ -73,15 +75,17 @@ class Predictions(BaseMultiClassPredictions):
     y_true DataFrames.
     """
 
+    n_columns = 3
+
     def __init__(self, y_pred=None, y_true=None, n_samples=None):
         # override init to not convert y_pred/y_true to arrays
         if y_pred is not None:
-            self.y_pred = y_pred
+            self.y_pred = np.array(y_pred)
         elif y_true is not None:
             self._init_from_pred_labels(y_true)
-            self.y_pred = pd.DataFrame(self.y_pred, y_true.index)
+            arr = y_true.index.values.astype('datetime64[m]').astype(int)
+            self.y_pred = np.hstack((arr[:, np.newaxis], self.y_pred))
         elif n_samples is not None:
-            print("Here I should never be !!!!!!!!!!!!!!!!!!!!!!!!!!")
             self.y_pred = np.empty((n_samples, self.n_columns), dtype=float)
             self.y_pred.fill(np.nan)
         else:
@@ -92,12 +96,27 @@ class Predictions(BaseMultiClassPredictions):
     @property
     def y_pred_label_index(self):
         """Multi-class y_pred is the index of the predicted label."""
-        return np.argmax(self.y_pred.values, axis=1)
+        return np.argmax(self.y_pred[:, 1:], axis=1)
 
 
 # -----------------------------------------------------------------------------
 # Score types
 # -----------------------------------------------------------------------------
+
+
+class PointWiseLogLoss(BaseScoreType):
+    # subclass BaseScoreType to use raw y_pred (proba's)
+    is_lower_the_better = True
+    minimum = 0.0
+    maximum = np.inf
+
+    def __init__(self, name='pw_ll', precision=2):
+        self.name = name
+        self.precision = precision
+
+    def __call__(self, y_true, y_pred):
+        score = log_loss(y_true[:, 1:], y_pred[:, 1:])
+        return score
 
 
 class PointWisePrecision(ClassifierBaseScoreType):
@@ -139,8 +158,12 @@ class EventWisePrecision(BaseScoreType):
         self.precision = precision
 
     def __call__(self, y_true, y_pred):
-        event_true = turnPredictionToEventList(y_true[1])
-        event_pred = turnPredictionToEventList(y_pred[1])
+        y_true = pd.Series(y_true[:, 2],
+                           index=pd.to_datetime(y_true[:, 0], unit='m'))
+        y_pred = pd.Series(y_pred[:, 2],
+                           index=pd.to_datetime(y_pred[:, 0], unit='m'))
+        event_true = turnPredictionToEventList(y_true)
+        event_pred = turnPredictionToEventList(y_pred)
         FP = [x for x in event_pred
               if max(overlapWithList(x, event_true, percent=True)) < 0.5]
         score = 1-len(FP)/len(event_pred)
@@ -157,8 +180,12 @@ class EventWiseRecall(BaseScoreType):
         self.precision = precision
 
     def __call__(self, y_true, y_pred):
-        event_true = turnPredictionToEventList(y_true[1])
-        event_pred = turnPredictionToEventList(y_pred[1])
+        y_true = pd.Series(y_true[:, 2],
+                           index=pd.to_datetime(y_true[:, 0], unit='m'))
+        y_pred = pd.Series(y_pred[:, 2],
+                           index=pd.to_datetime(y_pred[:, 0], unit='m'))
+        event_true = turnPredictionToEventList(y_true)
+        event_pred = turnPredictionToEventList(y_pred)
         FN = 0
         for event in event_true:
             corresponding = find(event, event_pred, 0.5, 'best')
@@ -286,7 +313,7 @@ def turnPredictionToEventList(y, thres=0.5):
 
 score_types = [
     # log-loss
-    rw.score_types.NegativeLogLikelihood(name='pw_ll'),
+    PointWiseLogLoss(),
     # point-wise (for each time step) precision and recall
     PointWisePrecision(),
     PointWiseRecall(),
