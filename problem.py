@@ -299,14 +299,15 @@ def turnPredictionToEventList(y, thres=0.5):
     eventList = [evt for evt in eventList
                  if evt.duration > datetime.timedelta(0)]
     while i < len(eventList) - 1:
-        if (eventList[i+1].begin-eventList[i].end
-                < datetime.timedelta(hours=thres)):
+        if ((eventList[i+1].begin - eventList[i].end)
+                < datetime.timedelta(hours=1)):
             eventList[i] = merge(eventList[i], eventList[i+1])
             eventList.remove(eventList[i+1])
         else:
             i += 1
-    eventList = [x for x in eventList
-                   if x.duration >= datetime.timedelta(hours=2.5)]
+
+    eventList = [evt for evt in eventList
+                 if evt.duration >= datetime.timedelta(hours=2.5)]
 
     return eventList
 
