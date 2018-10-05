@@ -166,7 +166,11 @@ class EventWisePrecision(BaseScoreType):
         event_pred = turnPredictionToEventList(y_pred)
         FP = [x for x in event_pred
               if max(overlapWithList(x, event_true, percent=True)) < 0.5]
-        score = 1-len(FP)/len(event_pred)
+        if len(event_pred):
+            score = 1-len(FP)/len(event_pred)
+        else:
+            # no predictions -> precision not defined, but setting to 0
+            score = 0
         return score
 
 
@@ -186,6 +190,8 @@ class EventWiseRecall(BaseScoreType):
                            index=pd.to_datetime(y_pred[:, 0], unit='m'))
         event_true = turnPredictionToEventList(y_true)
         event_pred = turnPredictionToEventList(y_pred)
+        if not event_pred:
+            return 0.
         FN = 0
         for event in event_true:
             corresponding = find(event, event_pred, 0.5, 'best')
@@ -293,8 +299,9 @@ def turnPredictionToEventList(y, thres=0.5):
         eventList.append(Event(listOfPosLabel.index[indexBegin],
                          listOfPosLabel.index[end]))
         indexBegin = i + 1
-    eventList.append(Event(listOfPosLabel.index[indexBegin],
-                           listOfPosLabel.index[-1]))
+    if len(endOfEvents):
+        eventList.append(Event(listOfPosLabel.index[indexBegin],
+                               listOfPosLabel.index[-1]))
     i = 0
     eventList = [evt for evt in eventList
                  if evt.duration > datetime.timedelta(0)]
