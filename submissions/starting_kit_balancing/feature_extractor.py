@@ -64,4 +64,5 @@ def compute_rolling_std(data, feature, time_window, center=False):
     name = '_'.join([feature, time_window, 'std'])
     data[name] = data[feature].rolling(time_window, center=center).std()
     data[name] = data[name].ffill().bfill()
+    data[name] = data[name].astype(data[feature].dtype)
     return data
