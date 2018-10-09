@@ -10,7 +10,6 @@ dependencies:
   - jupyter
   - matplotlib
   - scikit-learn>=0.20
-  - imbalanced-learn
   - joblib
   - keras
   - tensorflow
@@ -18,4 +17,4 @@ dependencies:
   - torchvision-cpu
   - pip:
       - https://api.github.com/repos/paris-saclay-cds/ramp-workflow/zipball/master
-
+      - imbalanced-learn
