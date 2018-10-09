@@ -104,7 +104,7 @@ class Predictions(BaseMultiClassPredictions):
 # -----------------------------------------------------------------------------
 
 
-class PointWiseLogLoss(BaseScoreType):
+class PointwiseLogLoss(BaseScoreType):
     # subclass BaseScoreType to use raw y_pred (proba's)
     is_lower_the_better = True
     minimum = 0.0
@@ -119,7 +119,7 @@ class PointWiseLogLoss(BaseScoreType):
         return score
 
 
-class PointWisePrecision(ClassifierBaseScoreType):
+class PointwisePrecision(ClassifierBaseScoreType):
     is_lower_the_better = False
     minimum = 0.0
     maximum = 1.0
@@ -133,7 +133,7 @@ class PointWisePrecision(ClassifierBaseScoreType):
         return score
 
 
-class PointWiseRecall(ClassifierBaseScoreType):
+class PointwiseRecall(ClassifierBaseScoreType):
     is_lower_the_better = False
     minimum = 0.0
     maximum = 1.0
@@ -147,7 +147,7 @@ class PointWiseRecall(ClassifierBaseScoreType):
         return score
 
 
-class EventWisePrecision(BaseScoreType):
+class EventwisePrecision(BaseScoreType):
     # subclass BaseScoreType to use raw y_pred (proba's)
     is_lower_the_better = False
     minimum = 0.0
@@ -162,19 +162,19 @@ class EventWisePrecision(BaseScoreType):
                            index=pd.to_datetime(y_true[:, 0], unit='m'))
         y_pred = pd.Series(y_pred[:, 2],
                            index=pd.to_datetime(y_pred[:, 0], unit='m'))
-        event_true = turnPredictionToEventList(y_true)
-        event_pred = turnPredictionToEventList(y_pred)
+        event_true = turn_prediction_to_event_list(y_true)
+        event_pred = turn_prediction_to_event_list(y_pred)
         FP = [x for x in event_pred
-              if max(overlapWithList(x, event_true, percent=True)) < 0.5]
+              if max(overlap_with_list(x, event_true, percent=True)) < 0.5]
         if len(event_pred):
-            score = 1-len(FP)/len(event_pred)
+            score = 1 - len(FP) / len(event_pred)
         else:
             # no predictions -> precision not defined, but setting to 0
             score = 0
         return score
 
 
-class EventWiseRecall(BaseScoreType):
+class EventwiseRecall(BaseScoreType):
     is_lower_the_better = False
     minimum = 0.0
     maximum = 1.0
@@ -188,8 +188,8 @@ class EventWiseRecall(BaseScoreType):
                            index=pd.to_datetime(y_true[:, 0], unit='m'))
         y_pred = pd.Series(y_pred[:, 2],
                            index=pd.to_datetime(y_pred[:, 0], unit='m'))
-        event_true = turnPredictionToEventList(y_true)
-        event_pred = turnPredictionToEventList(y_pred)
+        event_true = turn_prediction_to_event_list(y_true)
+        event_pred = turn_prediction_to_event_list(y_pred)
         if not event_pred:
             return 0.
         FN = 0
@@ -197,15 +197,49 @@ class EventWiseRecall(BaseScoreType):
             corresponding = find(event, event_pred, 0.5, 'best')
             if corresponding is None:
                 FN += 1
-        score = 1-FN/len(event_true)
+        score = 1 - FN / len(event_true)
         return score
+
+
+class EventwiseF1(BaseScoreType):
+    is_lower_the_better = False
+    minimum = 0.0
+    maximum = 1.0
+
+    def __init__(self, name='mixed', precision=2):
+        self.name = name
+        self.precision = precision
+        self.eventwise_recall = EventwiseRecall()
+        self.eventwise_precision = EventwisePrecision()
+
+    def __call__(self, y_true, y_pred):
+        rec = self.eventwise_recall(y_true, y_pred)
+        prec = self.eventwise_precision(y_true, y_pred)
+        return 2 * (prec * rec) / (prec + rec + 10 ** -15)
+
+
+class Mixed(BaseScoreType):
+    is_lower_the_better = True
+    minimum = 0.0
+    maximum = np.inf
+
+    def __init__(self, name='mixed', precision=2):
+        self.name = name
+        self.precision = precision
+        self.event_wise_f1 = EventwiseF1()
+        self.pointwise_log_loss = PointwiseLogLoss()
+
+    def __call__(self, y_true, y_pred):
+        f1 = self.event_wise_f1(y_true, y_pred)
+        ll = self.pointwise_log_loss(y_true, y_pred)
+        return ll + 0.1 * (1 - f1)
 
 
 class Event:
     def __init__(self, begin, end):
         self.begin = begin
         self.end = end
-        self.duration = self.end-self.begin
+        self.duration = self.end - self.begin
 
     def __str__(self):
         return "{} ---> {}".format(self.begin, self.end)
@@ -215,78 +249,79 @@ class Event:
 
 
 def overlap(event1, event2):
-    '''return the time overlap between two events as a timedelta'''
+    """Return the time overlap between two events as a timedelta"""
     delta1 = min(event1.end, event2.end)
     delta2 = max(event1.begin, event2.begin)
     return max(delta1 - delta2, datetime.timedelta(0))
 
 
-def overlapWithList(ref_event, event_list, percent=False):
-    '''
-    return the list of the overlaps between an event and the elements of
+def overlap_with_list(ref_event, event_list, percent=False):
+    """
+    Return the list of the overlaps between an event and the elements of
     an event list
     Have the possibility to have it as the percentage of fthe considered event
     in the list
-    '''
+    """
     if percent:
         return [overlap(ref_event, elt) / elt.duration for elt in event_list]
     else:
         return [overlap(ref_event, elt) for elt in event_list]
 
 
-def isInList(ref_event, event_list, thres):
-    '''
-    returns True if ref_event is overlapped thres percent of its duration by
+def is_in_list(ref_event, event_list, thres):
+    """
+    Return True if ref_event is overlapped thres percent of its duration by
     at least one elt in event_list
-    '''
-    return max(overlapWithList(ref_event,
-                               event_list)) > thres*ref_event.duration
+    """
+    return max(overlap_with_list(
+        ref_event, event_list)) > thres * ref_event.duration
 
 
 def merge(event1, event2):
     return Event(event1.begin, event2.end)
 
 
-def choseEventFromList(ref_event, event_list, choice='first'):
-    '''
-    return an event from even_list according to the choice adopted
+def choose_event_from_list(ref_event, event_list, choice='first'):
+    """
+    Return an event from even_list according to the choice adopted
     first return the first of the lists
     last return the last of the lists
     best return the one with max overlap
     merge return the combination of all of them
-    '''
+    """
     if choice == 'first':
         return event_list[0]
     if choice == 'last':
         return event_list[-1]
     if choice == 'best':
-        return event_list[np.argmax(overlapWithList(ref_event, event_list))]
+        return event_list[np.argmax(overlap_with_list(ref_event, event_list))]
     if choice == 'merge':
         return merge(event_list[0], event_list[-1])
 
 
 def find(ref_event, event_list, thres, choice='best'):
-    '''
+    """
     Return the event in event_list that overlap ref_event for a given threshold
     if it exists
     Choice give the preference of returned :
     first return the first of the lists
     Best return the one with max overlap
     merge return the combination of all of them
-    '''
-    if isInList(ref_event, event_list, thres):
-        return(choseEventFromList(ref_event, event_list, choice))
+    """
+    if is_in_list(ref_event, event_list, thres):
+        return(choose_event_from_list(ref_event, event_list, choice))
     else:
         return None
 
 
-def turnPredictionToEventList(y, thres=0.5):
-    '''
+def turn_prediction_to_event_list(y, thres=0.5):
+    """
     Consider y as a pandas series, returns a list of Events corresponding to
     the requested label (int), works for both smoothed and expected series
     Delta corresponds to the series frequency (in our basic case with random
     index, we consider this value to be equal to 2)
-    '''
+    """
+
     listOfPosLabel = y[y > thres]
     deltaBetweenPosLabel = listOfPosLabel.index[1:] - listOfPosLabel.index[:-1]
     deltaBetweenPosLabel.insert(0, datetime.timedelta(0))
@@ -306,10 +341,10 @@ def turnPredictionToEventList(y, thres=0.5):
     eventList = [evt for evt in eventList
                  if evt.duration > datetime.timedelta(0)]
     while i < len(eventList) - 1:
-        if ((eventList[i+1].begin - eventList[i].end)
-                < datetime.timedelta(hours=1)):
-            eventList[i] = merge(eventList[i], eventList[i+1])
-            eventList.remove(eventList[i+1])
+        if ((eventList[i + 1].begin - eventList[i].end) <
+                datetime.timedelta(hours=1)):
+            eventList[i] = merge(eventList[i], eventList[i + 1])
+            eventList.remove(eventList[i + 1])
         else:
             i += 1
 
@@ -321,13 +356,15 @@ def turnPredictionToEventList(y, thres=0.5):
 
 score_types = [
     # log-loss
-    PointWiseLogLoss(),
+    Mixed(),
+    # log-loss
+    PointwiseLogLoss(),
     # point-wise (for each time step) precision and recall
-    PointWisePrecision(),
-    PointWiseRecall(),
+    PointwisePrecision(),
+    PointwiseRecall(),
     # event-based precision and recall
-    EventWisePrecision(),
-    EventWiseRecall()
+    EventwisePrecision(),
+    EventwiseRecall()
 ]
 
 
