@@ -14,7 +14,8 @@ def determine_ratio(y):
     """
     target_stats = Counter(y)
     max_ = max(target_stats.values())
-    ratio = min(target_stats.values()) / max(target_stats.values()) * 5
+    ratio = min(target_stats.values()) / max(target_stats.values()) * 2
+    ratio = min(ratio, 1.)
 
     return {key: int(value * ratio)
             for key, value in target_stats.items() if value == max_}
