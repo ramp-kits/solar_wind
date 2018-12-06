@@ -18,6 +18,7 @@ dependencies:
   - xgboost
   - lightgbm
   - tqdm
+  - pyarrow
   - pip:
       - https://api.github.com/repos/paris-saclay-cds/ramp-workflow/zipball/master
       - imbalanced-learn
