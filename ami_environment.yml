@@ -17,11 +17,12 @@ dependencies:
   - torchvision-cpu
   - xgboost
   - lightgbm
+  - catboost
   - tqdm
   - pyarrow
+  - imbalanced-learn
+  - tsfresh
+  - featuretools
   - pip:
       - https://api.github.com/repos/paris-saclay-cds/ramp-workflow/zipball/master
-      - imbalanced-learn
-      - tsfresh
       - stldecompose
-      - catboost
