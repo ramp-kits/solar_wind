@@ -1,0 +1,15 @@
+name: ramp-solar-wind
+channels:
+  - defaults
+  - conda-forge
+dependencies:
+  - numpy
+  - scipy
+  - pandas>=0.23
+  - scikit-learn>=0.20
+  - pyarrow
+  - imbalanced-learn
+  - matplotlib
+  - joblib
+  - pip:
+      - https://api.github.com/repos/paris-saclay-cds/ramp-workflow/zipball/master
