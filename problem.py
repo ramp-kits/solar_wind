@@ -179,10 +179,12 @@ class EventwisePrecision(BaseScoreType):
         self.precision = precision
 
     def __call__(self, y_true, y_pred):
-        y_true = pd.Series(y_true[:, 2],
-                           index=pd.to_datetime(y_true[:, 0], unit='m'))
-        y_pred = pd.Series(y_pred[:, 2],
-                           index=pd.to_datetime(y_pred[:, 0], unit='m'))
+        y_true = pd.Series(
+            y_true[:, 2],
+            index=pd.to_datetime(y_true[:, 0].astype('int64'), unit='m'))
+        y_pred = pd.Series(
+            y_pred[:, 2],
+            index=pd.to_datetime(y_pred[:, 0].astype('int64'), unit='m'))
         event_true = turn_prediction_to_event_list(y_true)
         event_pred = turn_prediction_to_event_list(y_pred)
         FP = [x for x in event_pred
@@ -205,10 +207,12 @@ class EventwiseRecall(BaseScoreType):
         self.precision = precision
 
     def __call__(self, y_true, y_pred):
-        y_true = pd.Series(y_true[:, 2],
-                           index=pd.to_datetime(y_true[:, 0], unit='m'))
-        y_pred = pd.Series(y_pred[:, 2],
-                           index=pd.to_datetime(y_pred[:, 0], unit='m'))
+        y_true = pd.Series(
+            y_true[:, 2],
+            index=pd.to_datetime(y_true[:, 0].astype('int64'), unit='m'))
+        y_pred = pd.Series(
+            y_pred[:, 2],
+            index=pd.to_datetime(y_pred[:, 0].astype('int64'), unit='m'))
         event_true = turn_prediction_to_event_list(y_true)
         event_pred = turn_prediction_to_event_list(y_pred)
         if not event_pred:
