@@ -1,4 +1,3 @@
-from __future__ import division, print_function
 import os
 import datetime
 
@@ -11,9 +10,8 @@ from sklearn.metrics import log_loss, recall_score, precision_score
 import rampwf as rw
 from rampwf.score_types.base import BaseScoreType
 from rampwf.score_types.classifier_base import ClassifierBaseScoreType
-from rampwf.workflows.feature_extractor import FeatureExtractor
-from rampwf.workflows.classifier import Classifier
-
+from rampwf.workflows.sklearn_pipeline import SKLearnPipeline
+from rampwf.workflows.sklearn_pipeline import Estimator
 
 problem_title = 'Solar wind classification'
 
@@ -22,49 +20,45 @@ problem_title = 'Solar wind classification'
 # Worklow element
 # -----------------------------------------------------------------------------
 
-
-class FeatureExtractorClassifier(object):
+class EstimatorWithDate(SKLearnPipeline):
     """
-    Difference with the FeatureExtractorClassifier from ramp-workflow:
+    Difference with the Estimator from ramp-workflow:
     `test_submission` wraps the y_proba in a DataFrame with the original
     index.
     """
 
     def __init__(self):
-        self.element_names = ['feature_extractor', 'classifier']
-        self.feature_extractor_workflow = FeatureExtractor(
-            [self.element_names[0]])
-        self.classifier_workflow = Classifier([self.element_names[1]])
+        self.element_names = ['estimator']
+        self.estimator_workflow = Estimator()
 
     def train_submission(self, module_path, X_df, y_array, train_is=None):
         if train_is is None:
             train_is = slice(None, None, None)
-        fe = self.feature_extractor_workflow.train_submission(
+        est = self.estimator_workflow.train_submission(
             module_path, X_df, y_array, train_is)
-        X_train_array = self.feature_extractor_workflow.test_submission(
-            fe, X_df.iloc[train_is])
-        clf = self.classifier_workflow.train_submission(
-            module_path, X_train_array, y_array[train_is])
-        return fe, clf
+        return est
 
     def test_submission(self, trained_model, X_df):
-        fe, clf = trained_model
-        X_test_array = self.feature_extractor_workflow.test_submission(
-            fe, X_df)
-        y_proba = self.classifier_workflow.test_submission(clf, X_test_array)
-
+        # if test_is is None:
+        # test_is = slice(None, None, None)
+        est = trained_model
+        y_proba = self.estimator_workflow.test_submission(
+            est, X_df)
         arr = X_df.index.values.astype('datetime64[m]').astype(int)
         y = np.hstack((arr[:, np.newaxis], y_proba))
         return y
 
 
-workflow = FeatureExtractorClassifier()
+workflow = EstimatorWithDate()
 
 
 # -----------------------------------------------------------------------------
 # Predictions type
 # -----------------------------------------------------------------------------
 
+
+# Predictions = rw.prediction_types.make_multiclass(
+#    label_names=[0, 1])
 
 BaseMultiClassPredictions = rw.prediction_types.make_multiclass(
     label_names=[0, 1])
@@ -78,7 +72,7 @@ class Predictions(BaseMultiClassPredictions):
 
     n_columns = 3
 
-    def __init__(self, y_pred=None, y_true=None, n_samples=None):
+    def __init__(self, y_pred=None, y_true=None, fold_is=None, n_samples=None):
         # override init to not convert y_pred/y_true to arrays
         if y_pred is not None:
             self.y_pred = np.array(y_pred)
@@ -180,10 +174,10 @@ class EventwisePrecision(BaseScoreType):
 
     def __call__(self, y_true, y_pred):
         y_true = pd.Series(
-            y_true[:, 2],
+            y_true[:, 1],
             index=pd.to_datetime(y_true[:, 0].astype('int64'), unit='m'))
         y_pred = pd.Series(
-            y_pred[:, 2],
+            y_pred[:, 1],
             index=pd.to_datetime(y_pred[:, 0].astype('int64'), unit='m'))
         event_true = turn_prediction_to_event_list(y_true)
         event_pred = turn_prediction_to_event_list(y_pred)
@@ -208,10 +202,10 @@ class EventwiseRecall(BaseScoreType):
 
     def __call__(self, y_true, y_pred):
         y_true = pd.Series(
-            y_true[:, 2],
+            y_true[:, 1],
             index=pd.to_datetime(y_true[:, 0].astype('int64'), unit='m'))
         y_pred = pd.Series(
-            y_pred[:, 2],
+            y_pred[:, 1],
             index=pd.to_datetime(y_pred[:, 0].astype('int64'), unit='m'))
         event_true = turn_prediction_to_event_list(y_true)
         event_pred = turn_prediction_to_event_list(y_pred)
@@ -231,7 +225,7 @@ class EventwiseF1(BaseScoreType):
     minimum = 0.0
     maximum = 1.0
 
-    def __init__(self, name='mixed', precision=2):
+    def __init__(self, name='ev_F1', precision=2):
         self.name = name
         self.precision = precision
         self.eventwise_recall = EventwiseRecall()
@@ -384,6 +378,8 @@ score_types = [
     Mixed(),
     # log-loss
     PointwiseLogLoss(),
+    # event-based F1
+    EventwiseF1(),
     # point-wise (for each time step) precision and recall
     PointwisePrecision(),
     PointwiseRecall(),
@@ -432,6 +428,7 @@ def _read_data(path, type_):
     fname = 'labels_{}.csv'.format(type_)
     fp = os.path.join(path, 'data', fname)
     labels = pd.read_csv(fp)
+    # y = pd.read_csv(fp, index_col='Unnamed: 0')
 
     # convert labels into continuous array
 
