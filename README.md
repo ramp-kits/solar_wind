@@ -1,6 +1,5 @@
 # RAMP starting kit on solar wind classification
 
-[![Build Status](https://travis-ci.org/ramp-kits/solar_wind.svg?branch=master)](https://travis-ci.org/ramp-kits/solar_wind)
 
 _Authors: Gautier Nguyen, Joris van den Bossche, Nicolas Aunai & Balazs Kegl_
 
