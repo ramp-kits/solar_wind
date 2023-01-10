@@ -32,7 +32,6 @@ def get_estimator():
     classifier = Classifier()
 
     pipe = make_pipeline(feature_extractor, classifier)
-
     return pipe
 
 
