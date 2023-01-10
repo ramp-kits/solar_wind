@@ -42,8 +42,7 @@ class EstimatorWithDate(SKLearnPipeline):
         # if test_is is None:
         # test_is = slice(None, None, None)
         est = trained_model
-        y_proba = self.estimator_workflow.test_submission(
-            est, X_df)
+        y_proba = self.estimator_workflow.test_submission(est, X_df)
         arr = X_df.index.values.astype('datetime64[m]').astype(int)
         y = np.hstack((arr[:, np.newaxis], y_proba))
         return y
@@ -63,7 +62,6 @@ workflow = EstimatorWithDate()
 BaseMultiClassPredictions = rw.prediction_types.make_multiclass(
     label_names=[0, 1])
 
-
 class Predictions(BaseMultiClassPredictions):
     """
     Overriding parts of the ramp-workflow version to preserve the y_pred /
@@ -72,11 +70,15 @@ class Predictions(BaseMultiClassPredictions):
 
     n_columns = 3
 
-    def __init__(self, y_pred=None, y_true=None, fold_is=None, n_samples=None):
+    def __init__(self, y_pred=None, y_true=None, n_samples=None, fold_is=None):
         # override init to not convert y_pred/y_true to arrays
         if y_pred is not None:
+            if fold_is is not None:
+                y_pred = y_pred[fold_is]
             self.y_pred = np.array(y_pred)
         elif y_true is not None:
+            if fold_is is not None:
+                y_true = y_true[fold_is]
             self._init_from_pred_labels(y_true)
             arr = y_true.index.values.astype('datetime64[m]').astype(int)
             self.y_pred = np.hstack((arr[:, np.newaxis], self.y_pred))
