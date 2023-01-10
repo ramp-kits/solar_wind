@@ -39,8 +39,6 @@ class EstimatorWithDate(SKLearnPipeline):
         return est
 
     def test_submission(self, trained_model, X_df):
-        # if test_is is None:
-        # test_is = slice(None, None, None)
         est = trained_model
         y_proba = self.estimator_workflow.test_submission(est, X_df)
         arr = X_df.index.values.astype('datetime64[m]').astype(int)
@@ -56,11 +54,9 @@ workflow = EstimatorWithDate()
 # -----------------------------------------------------------------------------
 
 
-# Predictions = rw.prediction_types.make_multiclass(
-#    label_names=[0, 1])
-
 BaseMultiClassPredictions = rw.prediction_types.make_multiclass(
     label_names=[0, 1])
+
 
 class Predictions(BaseMultiClassPredictions):
     """
@@ -176,10 +172,10 @@ class EventwisePrecision(BaseScoreType):
 
     def __call__(self, y_true, y_pred):
         y_true = pd.Series(
-            y_true[:, 1],
+            y_true[:, 2],
             index=pd.to_datetime(y_true[:, 0].astype('int64'), unit='m'))
         y_pred = pd.Series(
-            y_pred[:, 1],
+            y_pred[:, 2],
             index=pd.to_datetime(y_pred[:, 0].astype('int64'), unit='m'))
         event_true = turn_prediction_to_event_list(y_true)
         event_pred = turn_prediction_to_event_list(y_pred)
@@ -204,10 +200,10 @@ class EventwiseRecall(BaseScoreType):
 
     def __call__(self, y_true, y_pred):
         y_true = pd.Series(
-            y_true[:, 1],
+            y_true[:, 2],
             index=pd.to_datetime(y_true[:, 0].astype('int64'), unit='m'))
         y_pred = pd.Series(
-            y_pred[:, 1],
+            y_pred[:, 2],
             index=pd.to_datetime(y_pred[:, 0].astype('int64'), unit='m'))
         event_true = turn_prediction_to_event_list(y_true)
         event_pred = turn_prediction_to_event_list(y_pred)
@@ -380,8 +376,6 @@ score_types = [
     Mixed(),
     # log-loss
     PointwiseLogLoss(),
-    # event-based F1
-    EventwiseF1(),
     # point-wise (for each time step) precision and recall
     PointwisePrecision(),
     PointwiseRecall(),
@@ -460,7 +454,7 @@ def _read_data(path, type_):
     # for the "quick-test" mode, use less data
     test = os.getenv('RAMP_TEST_MODE', 0)
     if test:
-        N_small = 50000
+        N_small = 35000
         data = data[:N_small]
         y = y[:N_small]
 
