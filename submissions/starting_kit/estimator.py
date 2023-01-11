@@ -40,12 +40,11 @@ def compute_rolling_std(X_df, feature, time_window, center=False):
 
 
 class FeatureExtractor(BaseEstimator):
-
     def fit(self, X, y):
         return self
 
     def transform(self, X):
-        return compute_rolling_std(X, 'Beta', '2h')
+        return compute_rolling_std(X, "Beta", "2h")
 
 
 def get_estimator():
