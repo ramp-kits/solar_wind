@@ -13,12 +13,13 @@ from rampwf.score_types.classifier_base import ClassifierBaseScoreType
 from rampwf.workflows.sklearn_pipeline import SKLearnPipeline
 from rampwf.workflows.sklearn_pipeline import Estimator
 
-problem_title = 'Solar wind classification'
+problem_title = "Solar wind classification"
 
 
 # -----------------------------------------------------------------------------
 # Worklow element
 # -----------------------------------------------------------------------------
+
 
 class EstimatorWithDate(SKLearnPipeline):
     """
@@ -28,20 +29,21 @@ class EstimatorWithDate(SKLearnPipeline):
     """
 
     def __init__(self):
-        self.element_names = ['estimator']
+        self.element_names = ["estimator"]
         self.estimator_workflow = Estimator()
 
     def train_submission(self, module_path, X_df, y_array, train_is=None):
         if train_is is None:
             train_is = slice(None, None, None)
         est = self.estimator_workflow.train_submission(
-            module_path, X_df, y_array, train_is)
+            module_path, X_df, y_array, train_is
+        )
         return est
 
     def test_submission(self, trained_model, X_df):
         est = trained_model
         y_proba = self.estimator_workflow.test_submission(est, X_df)
-        arr = X_df.index.values.astype('datetime64[m]').astype(int)
+        arr = X_df.index.values.astype("datetime64[m]").astype(int)
         y = np.hstack((arr[:, np.newaxis], y_proba))
         return y
 
@@ -54,8 +56,7 @@ workflow = EstimatorWithDate()
 # -----------------------------------------------------------------------------
 
 
-BaseMultiClassPredictions = rw.prediction_types.make_multiclass(
-    label_names=[0, 1])
+BaseMultiClassPredictions = rw.prediction_types.make_multiclass(label_names=[0, 1])
 
 
 class Predictions(BaseMultiClassPredictions):
@@ -76,14 +77,13 @@ class Predictions(BaseMultiClassPredictions):
             if fold_is is not None:
                 y_true = y_true[fold_is]
             self._init_from_pred_labels(y_true)
-            arr = y_true.index.values.astype('datetime64[m]').astype(int)
+            arr = y_true.index.values.astype("datetime64[m]").astype(int)
             self.y_pred = np.hstack((arr[:, np.newaxis], self.y_pred))
         elif n_samples is not None:
             self.y_pred = np.empty((n_samples, self.n_columns), dtype=float)
             self.y_pred.fill(np.nan)
         else:
-            raise ValueError(
-                'Missing init argument: y_pred, y_true, or n_samples')
+            raise ValueError("Missing init argument: y_pred, y_true, or n_samples")
         self.check_y_pred_dimensions()
 
     @property
@@ -95,18 +95,17 @@ class Predictions(BaseMultiClassPredictions):
     def combine(cls, predictions_list, index_list=None):
         if index_list is None:  # we combine the full list
             index_list = range(len(predictions_list))
-        y_comb_list = np.array(
-            [predictions_list[i].y_pred for i in index_list])
+        y_comb_list = np.array([predictions_list[i].y_pred for i in index_list])
         # clipping probas into [0, 1], also taking care of the case of all
         # zeros
-        y_comb_list[:, :, 1:] = np.clip(
-            y_comb_list[:, :, 1:], 10 ** -15, 1 - 10 ** -15)
+        y_comb_list[:, :, 1:] = np.clip(y_comb_list[:, :, 1:], 10**-15, 1 - 10**-15)
         # normalizing probabilities
         y_comb_list[:, :, 1:] = y_comb_list[:, :, 1:] / np.sum(
-            y_comb_list[:, :, 1:], axis=2, keepdims=True)
+            y_comb_list[:, :, 1:], axis=2, keepdims=True
+        )
         # I expect to see RuntimeWarnings in this block
         with warnings.catch_warnings():
-            warnings.simplefilter('ignore', category=RuntimeWarning)
+            warnings.simplefilter("ignore", category=RuntimeWarning)
             y_comb = np.nanmean(y_comb_list, axis=0)
         combined_predictions = cls(y_pred=y_comb)
         return combined_predictions
@@ -123,7 +122,7 @@ class PointwiseLogLoss(BaseScoreType):
     minimum = 0.0
     maximum = np.inf
 
-    def __init__(self, name='pw_ll', precision=2):
+    def __init__(self, name="pw_ll", precision=2):
         self.name = name
         self.precision = precision
 
@@ -137,7 +136,7 @@ class PointwisePrecision(ClassifierBaseScoreType):
     minimum = 0.0
     maximum = 1.0
 
-    def __init__(self, name='pw_prec', precision=2):
+    def __init__(self, name="pw_prec", precision=2):
         self.name = name
         self.precision = precision
 
@@ -151,7 +150,7 @@ class PointwiseRecall(ClassifierBaseScoreType):
     minimum = 0.0
     maximum = 1.0
 
-    def __init__(self, name='pw_rec', precision=2):
+    def __init__(self, name="pw_rec", precision=2):
         self.name = name
         self.precision = precision
 
@@ -166,21 +165,24 @@ class EventwisePrecision(BaseScoreType):
     minimum = 0.0
     maximum = 1.0
 
-    def __init__(self, name='ev_prec', precision=2):
+    def __init__(self, name="ev_prec", precision=2):
         self.name = name
         self.precision = precision
 
     def __call__(self, y_true, y_pred):
         y_true = pd.Series(
-            y_true[:, 2],
-            index=pd.to_datetime(y_true[:, 0].astype('int64'), unit='m'))
+            y_true[:, 2], index=pd.to_datetime(y_true[:, 0].astype("int64"), unit="m")
+        )
         y_pred = pd.Series(
-            y_pred[:, 2],
-            index=pd.to_datetime(y_pred[:, 0].astype('int64'), unit='m'))
+            y_pred[:, 2], index=pd.to_datetime(y_pred[:, 0].astype("int64"), unit="m")
+        )
         event_true = turn_prediction_to_event_list(y_true)
         event_pred = turn_prediction_to_event_list(y_pred)
-        FP = [x for x in event_pred
-              if max(overlap_with_list(x, event_true, percent=True)) < 0.5]
+        FP = [
+            x
+            for x in event_pred
+            if max(overlap_with_list(x, event_true, percent=True)) < 0.5
+        ]
         if len(event_pred):
             score = 1 - len(FP) / len(event_pred)
         else:
@@ -194,24 +196,24 @@ class EventwiseRecall(BaseScoreType):
     minimum = 0.0
     maximum = 1.0
 
-    def __init__(self, name='ev_rec', precision=2):
+    def __init__(self, name="ev_rec", precision=2):
         self.name = name
         self.precision = precision
 
     def __call__(self, y_true, y_pred):
         y_true = pd.Series(
-            y_true[:, 2],
-            index=pd.to_datetime(y_true[:, 0].astype('int64'), unit='m'))
+            y_true[:, 2], index=pd.to_datetime(y_true[:, 0].astype("int64"), unit="m")
+        )
         y_pred = pd.Series(
-            y_pred[:, 2],
-            index=pd.to_datetime(y_pred[:, 0].astype('int64'), unit='m'))
+            y_pred[:, 2], index=pd.to_datetime(y_pred[:, 0].astype("int64"), unit="m")
+        )
         event_true = turn_prediction_to_event_list(y_true)
         event_pred = turn_prediction_to_event_list(y_pred)
         if not event_pred:
-            return 0.
+            return 0.0
         FN = 0
         for event in event_true:
-            corresponding = find(event, event_pred, 0.5, 'best')
+            corresponding = find(event, event_pred, 0.5, "best")
             if corresponding is None:
                 FN += 1
         score = 1 - FN / len(event_true)
@@ -223,7 +225,7 @@ class EventwiseF1(BaseScoreType):
     minimum = 0.0
     maximum = 1.0
 
-    def __init__(self, name='ev_F1', precision=2):
+    def __init__(self, name="ev_F1", precision=2):
         self.name = name
         self.precision = precision
         self.eventwise_recall = EventwiseRecall()
@@ -232,7 +234,7 @@ class EventwiseF1(BaseScoreType):
     def __call__(self, y_true, y_pred):
         rec = self.eventwise_recall(y_true, y_pred)
         prec = self.eventwise_precision(y_true, y_pred)
-        return 2 * (prec * rec) / (prec + rec + 10 ** -15)
+        return 2 * (prec * rec) / (prec + rec + 10**-15)
 
 
 class Mixed(BaseScoreType):
@@ -240,7 +242,7 @@ class Mixed(BaseScoreType):
     minimum = 0.0
     maximum = np.inf
 
-    def __init__(self, name='mixed', precision=2):
+    def __init__(self, name="mixed", precision=2):
         self.name = name
         self.precision = precision
         self.event_wise_f1 = EventwiseF1()
@@ -290,15 +292,14 @@ def is_in_list(ref_event, event_list, thres):
     Return True if ref_event is overlapped thres percent of its duration by
     at least one elt in event_list
     """
-    return max(overlap_with_list(
-        ref_event, event_list)) > thres * ref_event.duration
+    return max(overlap_with_list(ref_event, event_list)) > thres * ref_event.duration
 
 
 def merge(event1, event2):
     return Event(event1.begin, event2.end)
 
 
-def choose_event_from_list(ref_event, event_list, choice='first'):
+def choose_event_from_list(ref_event, event_list, choice="first"):
     """
     Return an event from even_list according to the choice adopted
     first return the first of the lists
@@ -306,17 +307,17 @@ def choose_event_from_list(ref_event, event_list, choice='first'):
     best return the one with max overlap
     merge return the combination of all of them
     """
-    if choice == 'first':
+    if choice == "first":
         return event_list[0]
-    if choice == 'last':
+    if choice == "last":
         return event_list[-1]
-    if choice == 'best':
+    if choice == "best":
         return event_list[np.argmax(overlap_with_list(ref_event, event_list))]
-    if choice == 'merge':
+    if choice == "merge":
         return merge(event_list[0], event_list[-1])
 
 
-def find(ref_event, event_list, thres, choice='best'):
+def find(ref_event, event_list, thres, choice="best"):
     """
     Return the event in event_list that overlap ref_event for a given threshold
     if it exists
@@ -326,7 +327,7 @@ def find(ref_event, event_list, thres, choice='best'):
     merge return the combination of all of them
     """
     if is_in_list(ref_event, event_list, thres):
-        return(choose_event_from_list(ref_event, event_list, choice))
+        return choose_event_from_list(ref_event, event_list, choice)
     else:
         return None
 
@@ -342,31 +343,31 @@ def turn_prediction_to_event_list(y, thres=0.5):
     listOfPosLabel = y[y > thres]
     deltaBetweenPosLabel = listOfPosLabel.index[1:] - listOfPosLabel.index[:-1]
     deltaBetweenPosLabel.insert(0, datetime.timedelta(0))
-    endOfEvents = np.where(deltaBetweenPosLabel >
-                           datetime.timedelta(minutes=10))[0]
+    endOfEvents = np.where(deltaBetweenPosLabel > datetime.timedelta(minutes=10))[0]
     indexBegin = 0
     eventList = []
     for i in endOfEvents:
         end = i
-        eventList.append(Event(listOfPosLabel.index[indexBegin],
-                         listOfPosLabel.index[end]))
+        eventList.append(
+            Event(listOfPosLabel.index[indexBegin], listOfPosLabel.index[end])
+        )
         indexBegin = i + 1
     if len(endOfEvents):
-        eventList.append(Event(listOfPosLabel.index[indexBegin],
-                               listOfPosLabel.index[-1]))
+        eventList.append(
+            Event(listOfPosLabel.index[indexBegin], listOfPosLabel.index[-1])
+        )
     i = 0
-    eventList = [evt for evt in eventList
-                 if evt.duration > datetime.timedelta(0)]
+    eventList = [evt for evt in eventList if evt.duration > datetime.timedelta(0)]
     while i < len(eventList) - 1:
-        if ((eventList[i + 1].begin - eventList[i].end) <
-                datetime.timedelta(hours=1)):
+        if (eventList[i + 1].begin - eventList[i].end) < datetime.timedelta(hours=1):
             eventList[i] = merge(eventList[i], eventList[i + 1])
             eventList.remove(eventList[i + 1])
         else:
             i += 1
 
-    eventList = [evt for evt in eventList
-                 if evt.duration >= datetime.timedelta(hours=2.5)]
+    eventList = [
+        evt for evt in eventList if evt.duration >= datetime.timedelta(hours=2.5)
+    ]
 
     return eventList
 
@@ -400,14 +401,22 @@ def get_cv(X, y):
     # 5 folds, each point is in test set 4x
     # set k to a lower number if you want less folds
     pattern = [
-        ([2, 3, 4], [0, 1]), ([0, 1, 4], [2, 3]), ([0, 2, 3], [1, 4]),
-        ([0, 1, 3], [2, 4]), ([1, 2, 4], [0, 3]), ([0, 1, 2], [3, 4]),
-        ([0, 2, 4], [1, 3]), ([1, 2, 3], [0, 4]), ([0, 3, 4], [1, 2]),
-        ([1, 3, 4], [0, 2])
+        ([2, 3, 4], [0, 1]),
+        ([0, 1, 4], [2, 3]),
+        ([0, 2, 3], [1, 4]),
+        ([0, 1, 3], [2, 4]),
+        ([1, 2, 4], [0, 3]),
+        ([0, 1, 2], [3, 4]),
+        ([0, 2, 4], [1, 3]),
+        ([1, 2, 3], [0, 4]),
+        ([0, 3, 4], [1, 2]),
+        ([1, 3, 4], [0, 2]),
     ]
     for ps in pattern[:k]:
-        yield (np.hstack([splits[p][1] for p in ps[0]]),
-               np.hstack([splits[p][1] for p in ps[1]]))
+        yield (
+            np.hstack([splits[p][1] for p in ps[0]]),
+            np.hstack([splits[p][1] for p in ps[1]]),
+        )
 
 
 # -----------------------------------------------------------------------------
@@ -417,32 +426,31 @@ def get_cv(X, y):
 
 def _read_data(path, type_):
 
-    fname = 'data_{}.parquet'.format(type_)
-    fp = os.path.join(path, 'data', fname)
+    fname = "data_{}.parquet".format(type_)
+    fp = os.path.join(path, "data", fname)
     data = pd.read_parquet(fp)
 
-    fname = 'labels_{}.csv'.format(type_)
-    fp = os.path.join(path, 'data', fname)
+    fname = "labels_{}.csv".format(type_)
+    fp = os.path.join(path, "data", fname)
     labels = pd.read_csv(fp)
     # y = pd.read_csv(fp, index_col='Unnamed: 0')
 
     # convert labels into continuous array
 
-    labels['begin'] = pd.to_datetime(
-        labels['begin'], format="%Y-%m-%d %H:%M:%S")
-    labels['end'] = pd.to_datetime(labels['end'], format="%Y-%m-%d %H:%M:%S")
+    labels["begin"] = pd.to_datetime(labels["begin"], format="%Y-%m-%d %H:%M:%S")
+    labels["end"] = pd.to_datetime(labels["end"], format="%Y-%m-%d %H:%M:%S")
 
     # problem with identical begin / end previous label with reindexing method
-    mask = labels['begin'] == pd.Timestamp('2000-11-11 04:10:00')
-    labels.loc[mask, 'begin'] += pd.Timedelta('20min')
+    mask = labels["begin"] == pd.Timestamp("2000-11-11 04:10:00")
+    labels.loc[mask, "begin"] += pd.Timedelta("20min")
 
-    labels['end'] = labels['end'] + pd.Timedelta('10min')
-    labels.columns.name = 'label'
-    labels = labels[['begin', 'end']].stack().reset_index(name='time')
-    labels['label'] = labels['label'].replace({'begin': 1, 'end': 0})
-    labels = labels.set_index('time')['label']
+    labels["end"] = labels["end"] + pd.Timedelta("10min")
+    labels.columns.name = "label"
+    labels = labels[["begin", "end"]].stack().reset_index(name="time")
+    labels["label"] = labels["label"].replace({"begin": 1, "end": 0})
+    labels = labels.set_index("time")["label"]
 
-    y = labels.reindex(data.index, method='ffill')
+    y = labels.reindex(data.index, method="ffill")
     # remaining NaNs at beginning of series
     y = y.fillna(0).astype(int)
 
@@ -452,7 +460,7 @@ def _read_data(path, type_):
     #     y.loc[begin:end] = 1
 
     # for the "quick-test" mode, use less data
-    test = os.getenv('RAMP_TEST_MODE', 0)
+    test = os.getenv("RAMP_TEST_MODE", 0)
     if test:
         N_small = 35000
         data = data[:N_small]
@@ -461,9 +469,9 @@ def _read_data(path, type_):
     return data, y
 
 
-def get_train_data(path='.'):
-    return _read_data(path, 'train')
+def get_train_data(path="."):
+    return _read_data(path, "train")
 
 
-def get_test_data(path='.'):
-    return _read_data(path, 'test')
+def get_test_data(path="."):
+    return _read_data(path, "test")
