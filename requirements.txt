@@ -6,3 +6,4 @@ pyarrow
 imbalanced-learn
 matplotlib
 joblib
+osfclient
