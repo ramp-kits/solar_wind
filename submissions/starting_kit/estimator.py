@@ -1,14 +1,7 @@
 from sklearn.base import BaseEstimator
 from sklearn.pipeline import make_pipeline
+from sklearn.preprocessing import StandardScaler
 from sklearn.linear_model import LogisticRegression
-
-
-class FeatureExtractor(BaseEstimator):
-    def fit(self, X, y):
-        return self
-
-    def transform(self, X):
-        return compute_rolling_std(X, "Beta", "2h")
 
 
 class Classifier(BaseEstimator):
@@ -21,16 +14,6 @@ class Classifier(BaseEstimator):
     def predict(self, X):
         y_pred = self.model.predict_proba(X)
         return y_pred
-
-
-def get_estimator():
-
-    feature_extractor = FeatureExtractor()
-
-    classifier = Classifier()
-
-    pipe = make_pipeline(feature_extractor, classifier)
-    return pipe
 
 
 def compute_rolling_std(X_df, feature, time_window, center=False):
@@ -54,3 +37,22 @@ def compute_rolling_std(X_df, feature, time_window, center=False):
     X_df[name] = X_df[name].ffill().bfill()
     X_df[name] = X_df[name].astype(X_df[feature].dtype)
     return X_df
+
+
+class FeatureExtractor(BaseEstimator):
+
+    def fit(self, X, y):
+        return self
+
+    def transform(self, X):
+        return compute_rolling_std(X, 'Beta', '2h')
+
+
+def get_estimator():
+
+    feature_extractor = FeatureExtractor()
+
+    classifier = LogisticRegression(max_iter=1000)
+
+    pipe = make_pipeline(feature_extractor, StandardScaler(), classifier)
+    return pipe
