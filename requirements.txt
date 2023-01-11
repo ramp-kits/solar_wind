@@ -7,3 +7,4 @@ imbalanced-learn
 matplotlib
 joblib
 osfclient
+ramp-workflow
