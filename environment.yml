@@ -11,5 +11,7 @@ dependencies:
   - imbalanced-learn
   - matplotlib
   - joblib
+
+  - pip
   - pip:
-      - https://api.github.com/repos/paris-saclay-cds/ramp-workflow/zipball/master
+      - ramp-workflow
