@@ -4,18 +4,6 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.linear_model import LogisticRegression
 
 
-class Classifier(BaseEstimator):
-    def __init__(self):
-        self.model = LogisticRegression(max_iter=1000)
-
-    def fit(self, X, y):
-        self.model.fit(X, y)
-
-    def predict(self, X):
-        y_pred = self.model.predict_proba(X)
-        return y_pred
-
-
 def compute_rolling_std(X_df, feature, time_window, center=False):
     """
     For a given dataframe, compute the standard deviation over
