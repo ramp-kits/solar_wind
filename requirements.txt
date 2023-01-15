@@ -8,3 +8,4 @@ matplotlib
 joblib
 osfclient
 ramp-workflow
+lightgbm
