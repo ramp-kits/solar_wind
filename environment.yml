@@ -1,7 +1,7 @@
 name: ramp-solar-wind
 channels:
-  - defaults
   - conda-forge
+  - pytorch
 dependencies:
   - numpy
   - scipy
@@ -13,6 +13,8 @@ dependencies:
   - joblib
   - lightgbm
   - xgboost
+  - pytorch-cpu
+  - torchvision-cpu
 
   - pip
   - pip:

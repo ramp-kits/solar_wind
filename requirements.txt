@@ -10,3 +10,5 @@ osfclient
 ramp-workflow
 lightgbm
 xgboost
+pytorch-cpu
+torchvision-cpu
