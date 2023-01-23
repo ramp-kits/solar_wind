@@ -12,6 +12,7 @@ dependencies:
   - matplotlib
   - joblib
   - lightgbm
+  - xgboost
 
   - pip
   - pip:
