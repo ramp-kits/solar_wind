@@ -9,3 +9,4 @@ joblib
 osfclient
 ramp-workflow
 lightgbm
+xgboost
