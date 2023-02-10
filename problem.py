@@ -13,12 +13,13 @@ from rampwf.score_types.classifier_base import ClassifierBaseScoreType
 from rampwf.workflows.sklearn_pipeline import SKLearnPipeline
 from rampwf.workflows.sklearn_pipeline import Estimator
 
+
 problem_title = "Solar wind classification"
 
 
-# -----------------------------------------------------------------------------
+# ----------------------------------------------------------------------------
 # Worklow element
-# -----------------------------------------------------------------------------
+# ----------------------------------------------------------------------------
 
 
 class EstimatorWithDate(SKLearnPipeline):
@@ -51,9 +52,9 @@ class EstimatorWithDate(SKLearnPipeline):
 workflow = EstimatorWithDate()
 
 
-# -----------------------------------------------------------------------------
+# ----------------------------------------------------------------------------
 # Predictions type
-# -----------------------------------------------------------------------------
+# ----------------------------------------------------------------------------
 
 
 BaseMultiClassPredictions = rw.prediction_types.make_multiclass(label_names=[0, 1])
@@ -111,9 +112,9 @@ class Predictions(BaseMultiClassPredictions):
         return combined_predictions
 
 
-# -----------------------------------------------------------------------------
+# ----------------------------------------------------------------------------
 # Score types
-# -----------------------------------------------------------------------------
+# ----------------------------------------------------------------------------
 
 
 class PointwiseLogLoss(BaseScoreType):
@@ -171,10 +172,12 @@ class EventwisePrecision(BaseScoreType):
 
     def __call__(self, y_true, y_pred):
         y_true = pd.Series(
-            y_true[:, 2], index=pd.to_datetime(y_true[:, 0].astype("int64"), unit="m")
+            y_true[:, 2],
+            index=pd.to_datetime(y_true[:, 0].astype("int64"), unit="m"),
         )
         y_pred = pd.Series(
-            y_pred[:, 2], index=pd.to_datetime(y_pred[:, 0].astype("int64"), unit="m")
+            y_pred[:, 2],
+            index=pd.to_datetime(y_pred[:, 0].astype("int64"), unit="m"),
         )
         event_true = turn_prediction_to_event_list(y_true)
         event_pred = turn_prediction_to_event_list(y_pred)
@@ -202,10 +205,12 @@ class EventwiseRecall(BaseScoreType):
 
     def __call__(self, y_true, y_pred):
         y_true = pd.Series(
-            y_true[:, 2], index=pd.to_datetime(y_true[:, 0].astype("int64"), unit="m")
+            y_true[:, 2],
+            index=pd.to_datetime(y_true[:, 0].astype("int64"), unit="m"),
         )
         y_pred = pd.Series(
-            y_pred[:, 2], index=pd.to_datetime(y_pred[:, 0].astype("int64"), unit="m")
+            y_pred[:, 2],
+            index=pd.to_datetime(y_pred[:, 0].astype("int64"), unit="m"),
         )
         event_true = turn_prediction_to_event_list(y_true)
         event_pred = turn_prediction_to_event_list(y_pred)
@@ -385,9 +390,9 @@ score_types = [
     EventwiseRecall(),
 ]
 
-# -----------------------------------------------------------------------------
+# ----------------------------------------------------------------------------
 # Cross-validation scheme
-# -----------------------------------------------------------------------------
+# ----------------------------------------------------------------------------
 
 
 def get_cv(X, y):
@@ -419,13 +424,12 @@ def get_cv(X, y):
         )
 
 
-# -----------------------------------------------------------------------------
+# ----------------------------------------------------------------------------
 # Training / testing data reader
-# -----------------------------------------------------------------------------
+# ----------------------------------------------------------------------------
 
 
 def _read_data(path, type_):
-
     fname = "data_{}.parquet".format(type_)
     fp = os.path.join(path, "data", fname)
     data = pd.read_parquet(fp)
@@ -465,7 +469,6 @@ def _read_data(path, type_):
         N_small = 35000
         data = data[:N_small]
         y = y[:N_small]
-
     return data, y
 
 
