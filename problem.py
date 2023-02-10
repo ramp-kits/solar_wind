@@ -56,9 +56,7 @@ workflow = EstimatorWithDate()
 # -----------------------------------------------------------------------------
 
 
-BaseMultiClassPredictions = rw.prediction_types.make_multiclass(
-    label_names=[0, 1]
-)
+BaseMultiClassPredictions = rw.prediction_types.make_multiclass(label_names=[0, 1])
 
 
 class Predictions(BaseMultiClassPredictions):
@@ -85,9 +83,7 @@ class Predictions(BaseMultiClassPredictions):
             self.y_pred = np.empty((n_samples, self.n_columns), dtype=float)
             self.y_pred.fill(np.nan)
         else:
-            raise ValueError(
-                "Missing init argument: y_pred, y_true, or n_samples"
-            )
+            raise ValueError("Missing init argument: y_pred, y_true, or n_samples")
         self.check_y_pred_dimensions()
 
     @property
@@ -99,14 +95,10 @@ class Predictions(BaseMultiClassPredictions):
     def combine(cls, predictions_list, index_list=None):
         if index_list is None:  # we combine the full list
             index_list = range(len(predictions_list))
-        y_comb_list = np.array(
-            [predictions_list[i].y_pred for i in index_list]
-        )
+        y_comb_list = np.array([predictions_list[i].y_pred for i in index_list])
         # clipping probas into [0, 1], also taking care of the case of all
         # zeros
-        y_comb_list[:, :, 1:] = np.clip(
-            y_comb_list[:, :, 1:], 10**-15, 1 - 10**-15
-        )
+        y_comb_list[:, :, 1:] = np.clip(y_comb_list[:, :, 1:], 10**-15, 1 - 10**-15)
         # normalizing probabilities
         y_comb_list[:, :, 1:] = y_comb_list[:, :, 1:] / np.sum(
             y_comb_list[:, :, 1:], axis=2, keepdims=True
@@ -304,10 +296,7 @@ def is_in_list(ref_event, event_list, thres):
     Return True if ref_event is overlapped thres percent of its duration by
     at least one elt in event_list
     """
-    return (
-        max(overlap_with_list(ref_event, event_list))
-        > thres * ref_event.duration
-    )
+    return max(overlap_with_list(ref_event, event_list)) > thres * ref_event.duration
 
 
 def merge(event1, event2):
@@ -358,9 +347,7 @@ def turn_prediction_to_event_list(y, thres=0.5):
     listOfPosLabel = y[y > thres]
     deltaBetweenPosLabel = listOfPosLabel.index[1:] - listOfPosLabel.index[:-1]
     deltaBetweenPosLabel.insert(0, datetime.timedelta(0))
-    endOfEvents = np.where(
-        deltaBetweenPosLabel > datetime.timedelta(minutes=10)
-    )[0]
+    endOfEvents = np.where(deltaBetweenPosLabel > datetime.timedelta(minutes=10))[0]
     indexBegin = 0
     eventList = []
     for i in endOfEvents:
@@ -374,22 +361,16 @@ def turn_prediction_to_event_list(y, thres=0.5):
             Event(listOfPosLabel.index[indexBegin], listOfPosLabel.index[-1])
         )
     i = 0
-    eventList = [
-        evt for evt in eventList if evt.duration > datetime.timedelta(0)
-    ]
+    eventList = [evt for evt in eventList if evt.duration > datetime.timedelta(0)]
     while i < len(eventList) - 1:
-        if (eventList[i + 1].begin - eventList[i].end) < datetime.timedelta(
-            hours=1
-        ):
+        if (eventList[i + 1].begin - eventList[i].end) < datetime.timedelta(hours=1):
             eventList[i] = merge(eventList[i], eventList[i + 1])
             eventList.remove(eventList[i + 1])
         else:
             i += 1
 
     eventList = [
-        evt
-        for evt in eventList
-        if evt.duration >= datetime.timedelta(hours=2.5)
+        evt for evt in eventList if evt.duration >= datetime.timedelta(hours=2.5)
     ]
 
     return eventList
@@ -408,9 +389,9 @@ score_types = [
     EventwiseRecall(),
 ]
 
-# -----------------------------------------------------------------------------
+# ----------------------------------------------------------------------------
 # Cross-validation scheme
-# -----------------------------------------------------------------------------
+# ----------------------------------------------------------------------------
 
 
 def get_cv(X, y):
@@ -442,9 +423,9 @@ def get_cv(X, y):
         )
 
 
-# -----------------------------------------------------------------------------
+# ----------------------------------------------------------------------------
 # Training / testing data reader
-# -----------------------------------------------------------------------------
+# ----------------------------------------------------------------------------
 
 
 def _read_data(path, type_):
@@ -460,9 +441,7 @@ def _read_data(path, type_):
 
     # convert labels into continuous array
 
-    labels["begin"] = pd.to_datetime(
-        labels["begin"], format="%Y-%m-%d %H:%M:%S"
-    )
+    labels["begin"] = pd.to_datetime(labels["begin"], format="%Y-%m-%d %H:%M:%S")
     labels["end"] = pd.to_datetime(labels["end"], format="%Y-%m-%d %H:%M:%S")
 
     # problem with identical begin / end previous label with reindexing method
