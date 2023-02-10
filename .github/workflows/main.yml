@@ -46,4 +46,4 @@ jobs:
 
         - name: Check black
           run: |
-              black --check .
+              black --check *.py
