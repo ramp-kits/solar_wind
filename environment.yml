@@ -15,6 +15,7 @@ dependencies:
   - xgboost
   - pytorch-cpu
   - torchvision-cpu
+  - skorch
 
   - pip
   - pip:
