@@ -13,6 +13,7 @@ from rampwf.score_types.classifier_base import ClassifierBaseScoreType
 from rampwf.workflows.sklearn_pipeline import SKLearnPipeline
 from rampwf.workflows.sklearn_pipeline import Estimator
 
+
 problem_title = "Solar wind classification"
 
 
