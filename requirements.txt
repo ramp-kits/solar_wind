@@ -11,3 +11,4 @@ ramp-workflow
 lightgbm
 xgboost
 skorch
+catboost

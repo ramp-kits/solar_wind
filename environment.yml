@@ -16,6 +16,7 @@ dependencies:
   - pytorch-cpu
   - torchvision-cpu
   - skorch
+  - catboost
 
   - pip
   - pip:
